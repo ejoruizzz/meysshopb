@@ -26,4 +26,31 @@ extension OrderStatusX on OrderStatus {
       case OrderStatus.cancelled: return 4;
     }
   }
+
+  String get apiValue => name;
+}
+
+OrderStatus orderStatusFromApiValue(String? value) {
+  if (value == null) return OrderStatus.pending;
+  final normalized = value.toLowerCase();
+  switch (normalized) {
+    case 'pending':
+    case 'pendiente':
+      return OrderStatus.pending;
+    case 'preparing':
+    case 'preparando':
+      return OrderStatus.preparing;
+    case 'shipped':
+    case 'enviado':
+      return OrderStatus.shipped;
+    case 'completed':
+    case 'completado':
+      return OrderStatus.completed;
+    case 'cancelled':
+    case 'canceled':
+    case 'cancelado':
+      return OrderStatus.cancelled;
+    default:
+      return OrderStatus.pending;
+  }
 }

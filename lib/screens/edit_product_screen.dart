@@ -38,6 +38,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final updated = Product(
+      id: widget.product.id,
       name: _nameController.text.trim(),
       price: double.parse(_priceController.text.trim()),
       imageUrl: _imageController.text.trim(),
