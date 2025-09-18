@@ -22,20 +22,26 @@ app.get('/contact', (req, res) => {
     res.send('Contact Page')
 })
 const db = require('./models')
-db.sequelize.sync()
-    .then(() => {
-        console.log('Database synced successfully')
-    })
-    .catch((err) => {
-        console.log('Error syncing database: ', err.message)
-    })
-
-const indexRoutes = require('./src/routes/index')
-app.use(cors({ origin: process.env.FRONTEND_URL ?? '*', credentials: true }));
-
 const indexRoutes = require('./routes')
 
+app.use(cors({ origin: process.env.FRONTEND_URL ?? '*', credentials: true }));
 app.use(indexRoutes)
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`)
-})
+
+const startServer = async () => {
+    try {
+        await db.sequelize.authenticate()
+        console.log('Database connection has been established successfully')
+
+        await db.sequelize.sync()
+        console.log('Database synced successfully')
+
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`)
+        })
+    } catch (err) {
+        console.error('Unable to connect to the database:', err.message)
+        process.exit(1)
+    }
+}
+
+startServer()
