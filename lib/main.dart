@@ -1,70 +1,94 @@
 import 'package:flutter/material.dart';
+
 import 'models/product.dart';
 import 'models/usuario.dart';
 import 'screens/login_screen.dart';
-
-// Services (Dummy hoy; luego cambias a Api*)
+import 'services/api_client.dart';
+import 'services/auth_service.dart';
+import 'services/auth_service_api.dart';
 import 'services/auth_service_dummy.dart';
-import 'services/product_repo_dummy.dart';
+import 'services/order_repo_api.dart';
 import 'services/order_repo_dummy.dart';
+import 'services/order_repository.dart';
+import 'services/product_repo_api.dart';
+import 'services/product_repo_dummy.dart';
+import 'services/product_repository.dart';
+
+const bool kUseMockServices = bool.fromEnvironment(
+  'USE_MOCK_SERVICES',
+  defaultValue: false,
+);
+
+const String kApiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://localhost:3001',
+);
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  MyApp({super.key});
+
+  late final ApiClient _apiClient = ApiClient(baseUrl: kApiBaseUrl);
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Usuarios demo con IDs estables
-    final dummyAdmin = Usuario(
-      id: "u_admin",
-      nombre: "Admin User",
-      email: "admin@example.com",
-      rol: "admin",
-      phone: "+504 9999-9999",
-    );
+    late final AuthService authService;
+    late final ProductRepository productRepo;
+    late final OrderRepository orderRepo;
 
-    final dummyClient = Usuario(
-      id: "u_client",
-      nombre: "Cliente User",
-      email: "cliente@example.com",
-      rol: "cliente",
-    );
+    if (kUseMockServices) {
+      // ✅ Usuarios demo con IDs estables
+      final dummyAdmin = Usuario(
+        id: "u_admin",
+        nombre: "Admin User",
+        email: "admin@example.com",
+        rol: "admin",
+        phone: "+504 9999-9999",
+      );
 
-    // Productos dummy
-    final dummyProducts = <Product>[
-      const Product(
-        name: "Zapatos deportivos",
-        price: 59.99,
-        imageUrl: "https://picsum.photos/seed/zapatos/600/400",
-        cantidad: 10,
-        estado: "Activo",
-      ),
-      const Product(
-        name: "Camiseta básica",
-        price: 19.99,
-        imageUrl: "https://picsum.photos/seed/camiseta/600/400",
-        cantidad: 20,
-        estado: "Activo",
-      ),
-      const Product(
-        name: "Pantalón de mezclilla",
-        price: 39.99,
-        imageUrl: "https://picsum.photos/seed/pantalon/600/400",
-        cantidad: 15,
-        estado: "Activo",
-      ),
-    ];
+      final dummyClient = Usuario(
+        id: "u_client",
+        nombre: "Cliente User",
+        email: "cliente@example.com",
+        rol: "cliente",
+      );
 
-    // Services Dummy (hoy)
-    final authService = DummyAuthService(admin: dummyAdmin, client: dummyClient);
-    final productRepo = DummyProductRepository(dummyProducts);
+      // Productos dummy
+      final dummyProducts = <Product>[
+        const Product(
+          name: "Zapatos deportivos",
+          price: 59.99,
+          imageUrl: "https://picsum.photos/seed/zapatos/600/400",
+          cantidad: 10,
+          estado: "Activo",
+        ),
+        const Product(
+          name: "Camiseta básica",
+          price: 19.99,
+          imageUrl: "https://picsum.photos/seed/camiseta/600/400",
+          cantidad: 20,
+          estado: "Activo",
+        ),
+        const Product(
+          name: "Pantalón de mezclilla",
+          price: 39.99,
+          imageUrl: "https://picsum.photos/seed/pantalon/600/400",
+          cantidad: 15,
+          estado: "Activo",
+        ),
+      ];
 
-    // Pedidos dummy (cárgalos en MainScreen con su seeding actual,
-    // o si prefieres, puedes crear aquí una lista y pasarla al DummyOrderRepository)
-    final orderRepo = DummyOrderRepository([]); // inicia vacío; MainScreen puede simular/crear
+      authService = DummyAuthService(admin: dummyAdmin, client: dummyClient);
+      productRepo = DummyProductRepository(dummyProducts);
+      orderRepo = DummyOrderRepository([]);
+    } else {
+      authService = ApiAuthService(_apiClient);
+      productRepo = ApiProductRepository(_apiClient);
+      orderRepo = ApiOrderRepository(_apiClient);
+    }
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -105,11 +129,10 @@ class MyApp extends StatelessWidget {
       ),
       // Login recibe services y los pasa al resto
       home: LoginScreen(
-        authService: authService,          // ← este era el que faltaba
+        authService: authService,
         productRepository: productRepo,
         orderRepository: orderRepo,
-),
-
+      ),
     );
   }
 }
