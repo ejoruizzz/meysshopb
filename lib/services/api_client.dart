@@ -12,7 +12,14 @@ class ApiException implements Exception {
   final dynamic data;
 
   @override
-  String toString() => 'ApiException($statusCode): $message';
+  String toString() {
+    final buffer = StringBuffer('ApiException($statusCode): $message');
+    if (data != null) {
+      buffer.write(' -> ');
+      buffer.write(data);
+    }
+    return buffer.toString();
+  }
 }
 
 /// Cliente HTTP centralizado con soporte para tokens y refresh automático.
@@ -159,7 +166,8 @@ class ApiClient {
       request.body = encodedBody;
     }
 
-    http.Response response = await http.Response.fromStream(await _httpClient.send(request));
+    http.Response response =
+        await http.Response.fromStream(await _httpClient.send(request));
 
     if (response.statusCode == 401 && retryOnUnauthorized) {
       final refreshed = await _attemptTokenRefresh();
@@ -201,6 +209,24 @@ class ApiClient {
     return headers;
   }
 
+  Uri _resolveUri(String path, Map<String, dynamic>? queryParameters) {
+    bool hasPrefix(List<String> segments, List<String> prefix) {
+      if (prefix.isEmpty || prefix.length > segments.length) {
+        return false;
+      }
+      for (var i = 0; i < prefix.length; i++) {
+        if (segments[i] != prefix[i]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    final baseUri = Uri.parse(baseUrl);
+    final mergedQuery = <String, String>{};
+    late Uri uri;
+
+
   Uri _resolveUri(String path, [Map<String, dynamic>? queryParameters]) {
     final mergedQuery = <String, String>{..._baseQueryParameters};
     final trimmedPath = path.trim();
@@ -215,8 +241,32 @@ class ApiClient {
       if (parsedPath.hasScheme) {
         uri = parsedPath;
       } else {
+        final baseSegments =
+            baseUri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+        final pathSegments =
+            parsedPath.pathSegments.where((segment) => segment.isNotEmpty).toList();
+        final combinedSegments = <String>[];
+
+        if (trimmedPath.startsWith('/')) {
+          combinedSegments.addAll(pathSegments);
+        } else if (baseSegments.isEmpty || hasPrefix(pathSegments, baseSegments)) {
+          combinedSegments.addAll(pathSegments);
+        } else {
+          combinedSegments
+            ..addAll(baseSegments)
+            ..addAll(pathSegments);
+        }
+
+        final fragment = parsedPath.fragment.isEmpty ? null : parsedPath.fragment;
+        uri = baseUri.replace(
+          pathSegments: combinedSegments,
+          queryParameters: null,
+          fragment: fragment,
+        );
+
         final relative = parsedPath.replace(queryParameters: null, fragment: null);
         uri = _baseUri.resolveUri(relative);
+
       }
     }
 
@@ -317,14 +367,22 @@ class ApiClient {
 
       final data = _parseResponse(response);
       if (data is! Map<String, dynamic>) {
-        throw ApiException(response.statusCode, 'Respuesta inválida del refresh', data: data);
+        throw ApiException(
+          response.statusCode,
+          'Respuesta inválida del refresh',
+          data: data,
+        );
       }
 
       final newAccess = data['access'] as String?;
       final newRefresh = data['refresh'] as String?;
 
       if (newAccess == null || newAccess.isEmpty) {
-        throw ApiException(response.statusCode, 'Refresh sin access token', data: data);
+        throw ApiException(
+          response.statusCode,
+          'Refresh sin access token',
+          data: data,
+        );
       }
 
       _accessToken = newAccess;
