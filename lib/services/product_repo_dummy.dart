@@ -26,8 +26,15 @@ class DummyProductRepository implements ProductRepository {
 
   @override
   Future<Product> createProduct(Product p) async {
-    // Evita duplicados por “name” en el dummy
-    final exists = _store.any((x) => x.name.toLowerCase() == p.name.toLowerCase());
+    bool _sameIdentity(Product a, Product b) {
+      if (a.id != null && b.id != null) {
+        return a.id == b.id;
+      }
+      return a.name.toLowerCase() == b.name.toLowerCase();
+    }
+
+    // Evita duplicados por id (si existe) o por nombre en modo dummy
+    final exists = _store.any((x) => _sameIdentity(x, p));
     if (exists) {
       throw Exception('Ya existe un producto con ese nombre');
     }
@@ -37,22 +44,32 @@ class DummyProductRepository implements ProductRepository {
 
   @override
   Future<Product> updateProduct(Product p) async {
-    // Busca por “name”; en producción sería por id
-    final idx = _store.indexWhere((x) => x.name.toLowerCase() == p.name.toLowerCase());
+    int _indexOf(Product product) {
+      if (product.id != null) {
+        final idx = _store.indexWhere((x) => x.id == product.id);
+        if (idx != -1) return idx;
+      }
+      return _store.indexWhere((x) => x.name.toLowerCase() == product.name.toLowerCase());
+    }
+
+    final idx = _indexOf(p);
     if (idx == -1) throw Exception('Producto no encontrado');
     _store[idx] = p;
     return p;
   }
 
   @override
-Future<void> deleteProduct(String productId) async {
-  final before = _store.length;
-  _store.removeWhere(
-    (x) => x.name.toLowerCase() == productId.toLowerCase(),
-  );
-  if (_store.length == before) {
-    throw Exception('Producto no encontrado');
+  Future<void> deleteProduct(String productId) async {
+    final before = _store.length;
+    _store.removeWhere((x) {
+      if (x.id != null && x.id == productId) {
+        return true;
+      }
+      return x.name.toLowerCase() == productId.toLowerCase();
+    });
+    if (_store.length == before) {
+      throw Exception('Producto no encontrado');
+    }
   }
-}
 
 }

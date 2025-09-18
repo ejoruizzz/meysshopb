@@ -99,16 +99,23 @@ class _MainScreenState extends State<MainScreen> {
 
   // ---------- Helpers de stock / carrito ----------
 
+  bool _sameProduct(Product a, Product b) {
+    if (a.id != null && b.id != null) {
+      return a.id == b.id;
+    }
+    return a.name.toLowerCase() == b.name.toLowerCase();
+  }
+
   int _availableStockOf(Product product) {
-    final match = _products.where((p) => p.name == product.name);
+    final match = _products.where((p) => _sameProduct(p, product));
     if (match.isNotEmpty) return match.first.cantidad;
     return product.cantidad;
   }
 
   int _qtyInCartOf(Product product) {
-    final idx = _cart.indexWhere((it) => it.product.name == product.name);
+    final idx = _cart.indexWhere((it) => _sameProduct(it.product, product));
     return idx >= 0 ? _cart[idx].qty : 0;
-    }
+  }
 
   void _addToCart(Product product, int qty) {
     if (isAdminEffective) return; // admin no compra
@@ -132,7 +139,7 @@ class _MainScreenState extends State<MainScreen> {
       return;
     }
 
-    final idx = _cart.indexWhere((it) => it.product.name == product.name);
+    final idx = _cart.indexWhere((it) => _sameProduct(it.product, product));
     setState(() {
       if (idx >= 0) {
         _cart[idx] = _cart[idx].copyWith(qty: _cart[idx].qty + safeQty);
