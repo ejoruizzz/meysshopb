@@ -309,18 +309,66 @@ class ApiClient {
   }
 
   Uri _resolveUri(String path, Map<String, dynamic>? queryParameters) {
-    final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
-    final normalizedPath = path.startsWith('/') ? path : '/$path';
-    final uri = Uri.parse('$base$normalizedPath');
-    if (queryParameters == null || queryParameters.isEmpty) {
-      return uri;
+    bool hasPrefix(List<String> segments, List<String> prefix) {
+      if (prefix.isEmpty || prefix.length > segments.length) {
+        return false;
+      }
+      for (var i = 0; i < prefix.length; i++) {
+        if (segments[i] != prefix[i]) {
+          return false;
+        }
+      }
+      return true;
     }
-    final qp = <String, String>{};
-    queryParameters.forEach((key, value) {
-      if (value == null) return;
-      qp[key] = value.toString();
-    });
-    return uri.replace(queryParameters: qp.isEmpty ? null : qp);
+
+    final baseUri = Uri.parse(baseUrl);
+    final mergedQuery = <String, String>{};
+    Uri uri;
+
+    final trimmedPath = path.trim();
+    if (trimmedPath.isEmpty) {
+      uri = baseUri;
+      mergedQuery.addAll(baseUri.queryParameters);
+    } else {
+      final parsedPath = Uri.parse(trimmedPath);
+      mergedQuery.addAll(parsedPath.queryParameters);
+
+      if (parsedPath.hasScheme) {
+        uri = parsedPath;
+      } else {
+        final baseSegments = baseUri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+        final pathSegments = parsedPath.pathSegments.where((segment) => segment.isNotEmpty).toList();
+        final combinedSegments = <String>[];
+
+        if (trimmedPath.startsWith('/')) {
+          combinedSegments.addAll(pathSegments);
+        } else if (baseSegments.isEmpty || hasPrefix(pathSegments, baseSegments)) {
+          combinedSegments.addAll(pathSegments);
+        } else {
+          combinedSegments
+            ..addAll(baseSegments)
+            ..addAll(pathSegments);
+        }
+
+        final fragment = parsedPath.fragment.isEmpty ? null : parsedPath.fragment;
+        uri = baseUri.replace(
+          pathSegments: combinedSegments,
+          queryParameters: null,
+          fragment: fragment,
+        );
+      }
+    }
+
+    if (queryParameters != null && queryParameters.isNotEmpty) {
+      queryParameters.forEach((key, value) {
+        if (value == null) return;
+        mergedQuery[key] = value.toString();
+      });
+    }
+
+    return mergedQuery.isEmpty
+        ? uri.replace(queryParameters: null)
+        : uri.replace(queryParameters: mergedQuery);
   }
 
   String _encodeBody(Object body) {
@@ -458,6 +506,12 @@ class ApiException implements Exception {
       buffer.write(responseBody);
     }
     return buffer.toString();
+  }
+}
+
+extension ApiClientTestAccess on ApiClient {
+  Uri resolveUriForTest(String path, [Map<String, dynamic>? queryParameters]) {
+    return _resolveUri(path, queryParameters);
   }
 }
 
