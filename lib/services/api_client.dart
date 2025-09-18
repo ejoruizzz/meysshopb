@@ -209,7 +209,7 @@ class ApiClient {
     return headers;
   }
 
-  Uri _resolveUri(String path, Map<String, dynamic>? queryParameters) {
+  Uri _resolveUri(String path, [Map<String, dynamic>? queryParameters]) {
     bool hasPrefix(List<String> segments, List<String> prefix) {
       if (prefix.isEmpty || prefix.length > segments.length) {
         return false;
@@ -222,12 +222,6 @@ class ApiClient {
       return true;
     }
 
-    final baseUri = Uri.parse(baseUrl);
-    final mergedQuery = <String, String>{};
-    late Uri uri;
-
-
-  Uri _resolveUri(String path, [Map<String, dynamic>? queryParameters]) {
     final mergedQuery = <String, String>{..._baseQueryParameters};
     final trimmedPath = path.trim();
     Uri uri = _baseUri;
@@ -242,7 +236,7 @@ class ApiClient {
         uri = parsedPath;
       } else {
         final baseSegments =
-            baseUri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+            _baseUri.pathSegments.where((segment) => segment.isNotEmpty).toList();
         final pathSegments =
             parsedPath.pathSegments.where((segment) => segment.isNotEmpty).toList();
         final combinedSegments = <String>[];
@@ -257,16 +251,25 @@ class ApiClient {
             ..addAll(pathSegments);
         }
 
-        final fragment = parsedPath.fragment.isEmpty ? null : parsedPath.fragment;
-        uri = baseUri.replace(
-          pathSegments: combinedSegments,
+        final normalizedSegments = <String>[];
+        for (final segment in combinedSegments) {
+          if (segment == '.' || segment.isEmpty) {
+            continue;
+          }
+          if (segment == '..') {
+            if (normalizedSegments.isNotEmpty) {
+              normalizedSegments.removeLast();
+            }
+            continue;
+          }
+          normalizedSegments.add(segment);
+        }
+
+        uri = _baseUri.replace(
+          pathSegments: normalizedSegments,
           queryParameters: null,
           fragment: fragment,
         );
-
-        final relative = parsedPath.replace(queryParameters: null, fragment: null);
-        uri = _baseUri.resolveUri(relative);
-
       }
     }
 
