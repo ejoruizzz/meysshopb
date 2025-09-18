@@ -25,11 +25,16 @@ class ApiException implements Exception {
 /// Cliente HTTP centralizado con soporte para tokens y refresh automático.
 class ApiClient {
   ApiClient({
-    required this.baseUrl,
+    required String baseUrl,
     http.Client? httpClient,
-  }) : _httpClient = httpClient ?? http.Client();
+  }) : _httpClient = httpClient ?? http.Client() {
+    final parsedBase = Uri.parse(baseUrl);
+    _baseUri = _normalizeBase(parsedBase);
+    _baseQueryParameters = Map.unmodifiable(parsedBase.queryParameters);
+  }
 
-  final String baseUrl;
+  late final Uri _baseUri;
+  late final Map<String, String> _baseQueryParameters;
   final http.Client _httpClient;
 
   String? _accessToken;
@@ -153,10 +158,12 @@ class ApiClient {
       throw StateError('ApiClient has been closed');
     }
 
-    final request = http.Request(method, _resolveUri(path, queryParameters));
+    final request = http.Request(method.toUpperCase(), _resolveUri(path, queryParameters));
     request.headers.addAll(_buildHeaders(body: body, extraHeaders: headers));
-    if (body != null) {
-      request.body = _encodeBody(body);
+
+    final encodedBody = _encodeBody(body);
+    if (encodedBody != null) {
+      request.body = encodedBody;
     }
 
     http.Response response =
@@ -186,15 +193,19 @@ class ApiClient {
     final headers = <String, String>{
       'Accept': 'application/json',
     };
+
     if (body != null && body is! http.BaseRequest && body is! String) {
       headers['Content-Type'] = 'application/json';
     }
+
     if (_accessToken != null && _accessToken!.isNotEmpty) {
       headers['Authorization'] = 'Bearer ${_accessToken!}';
     }
+
     if (extraHeaders != null) {
       headers.addAll(extraHeaders);
     }
+
     return headers;
   }
 
@@ -215,13 +226,17 @@ class ApiClient {
     final mergedQuery = <String, String>{};
     late Uri uri;
 
+
+  Uri _resolveUri(String path, [Map<String, dynamic>? queryParameters]) {
+    final mergedQuery = <String, String>{..._baseQueryParameters};
     final trimmedPath = path.trim();
-    if (trimmedPath.isEmpty) {
-      uri = baseUri;
-      mergedQuery.addAll(baseUri.queryParameters);
-    } else {
+    Uri uri = _baseUri;
+    String? fragment;
+
+    if (trimmedPath.isNotEmpty) {
       final parsedPath = Uri.parse(trimmedPath);
       mergedQuery.addAll(parsedPath.queryParameters);
+      fragment = parsedPath.fragment.isEmpty ? null : parsedPath.fragment;
 
       if (parsedPath.hasScheme) {
         uri = parsedPath;
@@ -248,30 +263,54 @@ class ApiClient {
           queryParameters: null,
           fragment: fragment,
         );
+
+        final relative = parsedPath.replace(queryParameters: null, fragment: null);
+        uri = _baseUri.resolveUri(relative);
+
       }
     }
 
     if (queryParameters != null && queryParameters.isNotEmpty) {
       queryParameters.forEach((key, value) {
-        if (value == null) return;
-        mergedQuery[key] = value.toString();
+        if (value != null) {
+          mergedQuery[key] = value.toString();
+        }
       });
     }
 
-    return mergedQuery.isEmpty
+    uri = mergedQuery.isEmpty
         ? uri.replace(queryParameters: null)
         : uri.replace(queryParameters: mergedQuery);
+
+    if (fragment != null && fragment.isNotEmpty) {
+      uri = uri.replace(fragment: fragment);
+    }
+
+    return uri;
   }
 
-  String _encodeBody(Object body) {
+  static Uri _normalizeBase(Uri uri) {
+    final normalizedPath = (uri.path.isEmpty || uri.path == '/')
+        ? '/'
+        : (uri.path.endsWith('/') ? uri.path : '${uri.path}/');
+
+    return uri.replace(
+      path: normalizedPath,
+      queryParameters: null,
+      fragment: null,
+    );
+  }
+
+  String? _encodeBody(Object? body) {
+    if (body == null) return null;
     if (body is String) return body;
-    if (body is List || body is Map) return jsonEncode(body);
     return jsonEncode(body);
   }
 
   dynamic _parseResponse(http.Response response) {
     final status = response.statusCode;
     dynamic data;
+
     if (response.body.isNotEmpty) {
       try {
         data = jsonDecode(response.body);
@@ -318,7 +357,7 @@ class ApiClient {
 
     try {
       final response = await _httpClient.post(
-        _resolveUri('/api/auth/refresh', null),
+        _resolveUri('/api/auth/refresh'),
         headers: const {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
