@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const app = express()
 require('dotenv').config()
 const bodyParser = require('body-parser');
@@ -29,6 +30,7 @@ db.sequelize.sync()
         console.log('Error syncing database: ', err.message)
     })
 const indexRoutes = require('./src/routes/index')
+app.use(cors({ origin: process.env.FRONTEND_URL ?? '*', credentials: true }));
 app.use(indexRoutes)
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`)
