@@ -3,6 +3,7 @@ import 'api_client.dart';
 import 'profile_repository.dart';
 
 class ApiProfileRepository implements ProfileRepository {
+
   ApiProfileRepository(
     this._client, {
     this.mePath = '/api/profile/me',
@@ -18,10 +19,25 @@ class ApiProfileRepository implements ProfileRepository {
       throw ApiException(500, 'Respuesta inválida al obtener perfil', data: data);
     }
     return _usuarioFromJson(data);
+
+  ApiProfileRepository(this._client);
+
+  final ApiClient _client;
+  static const String _mePath = '/api/me';
+
+  @override
+  Future<Usuario> getMe() async {
+    final data = await _client.get(_mePath);
+    if (data is Map<String, dynamic>) {
+      return Usuario.fromJson(data);
+    }
+    throw const FormatException('Respuesta inesperada al obtener el perfil');
+
   }
 
   @override
   Future<Usuario> updateMe(Usuario u) async {
+
     final data = await _client.put(mePath, body: _usuarioToJson(u));
     if (data is! Map<String, dynamic>) {
       throw ApiException(500, 'Respuesta inválida al actualizar perfil', data: data);
@@ -55,4 +71,12 @@ class ApiProfileRepository implements ProfileRepository {
         if (u.phone != null) 'phone': u.phone,
         if (u.avatarUrl != null) 'avatarUrl': u.avatarUrl,
       };
+
+    final data = await _client.put(_mePath, body: u.toJson());
+    if (data is Map<String, dynamic>) {
+      return Usuario.fromJson(data);
+    }
+    throw const FormatException('Respuesta inesperada al actualizar el perfil');
+  }
+
 }

@@ -2,6 +2,7 @@ import '../models/product.dart';
 import 'api_client.dart';
 import 'product_repository.dart';
 
+
 /// Implementación que consume la API REST (por ahora /api/clientes).
 class ApiProductRepository implements ProductRepository {
   ApiProductRepository(
@@ -14,12 +15,20 @@ class ApiProductRepository implements ProductRepository {
 
   final Map<String, String> _idByCacheKey = {};
 
+class ApiProductRepository implements ProductRepository {
+  ApiProductRepository(this._client);
+
+  final ApiClient _client;
+  static const String _basePath = '/api/productos';
+
+
   @override
   Future<List<Product>> fetchProducts({String? search}) async {
     final query = <String, dynamic>{};
     if (search != null && search.trim().isNotEmpty) {
       query['q'] = search.trim();
     }
+
 
     final data = await _client.get(basePath, queryParameters: query.isEmpty ? null : query);
     if (data is! List) {
@@ -35,10 +44,24 @@ class ApiProductRepository implements ProductRepository {
       _cacheId(product, item);
     }
     return products;
+
+    final data = await _client.get(
+      _basePath,
+      queryParameters: query.isEmpty ? null : query,
+    );
+    if (data is List) {
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map(Product.fromJson)
+          .toList(growable: false);
+    }
+    throw const FormatException('Respuesta inesperada al listar productos');
+
   }
 
   @override
   Future<Product> createProduct(Product p) async {
+
     final data = await _client.post(basePath, body: _toJson(p));
     if (data is! Map<String, dynamic>) {
       throw ApiException(500, 'Respuesta inválida al crear producto', data: data);
@@ -46,10 +69,19 @@ class ApiProductRepository implements ProductRepository {
     final created = _fromJson(data);
     _cacheId(created, data);
     return created;
+
+    final payload = p.toJson();
+    final data = await _client.post(_basePath, body: payload);
+    if (data is Map<String, dynamic>) {
+      return Product.fromJson(data);
+    }
+    throw const FormatException('Respuesta inesperada al crear producto');
+
   }
 
   @override
   Future<Product> updateProduct(Product p) async {
+
     final id = _lookupId(p);
     if (id == null) {
       throw ApiException(400, 'No se encontró identificador para el producto ${p.name}');
@@ -61,10 +93,25 @@ class ApiProductRepository implements ProductRepository {
     final updated = _fromJson(data);
     _cacheId(updated, data);
     return updated;
+
+    final id = p.id;
+    if (id == null || id.isEmpty) {
+      throw const ArgumentError('El producto debe tener un id para actualizarse');
+    }
+    final data = await _client.put(
+      '$_basePath/${Uri.encodeComponent(id)}',
+      body: p.toJson(),
+    );
+    if (data is Map<String, dynamic>) {
+      return Product.fromJson(data);
+    }
+    throw const FormatException('Respuesta inesperada al actualizar producto');
+
   }
 
   @override
   Future<void> deleteProduct(String productId) async {
+
     final id = productId.isNotEmpty ? (_idByCacheKey[productId] ?? productId) : null;
     if (id == null) {
       throw ApiException(400, 'ID de producto inválido');
@@ -122,4 +169,8 @@ class ApiProductRepository implements ProductRepository {
         'cantidad': product.cantidad,
         'estado': product.estado,
       };
+
+    await _client.delete('$_basePath/${Uri.encodeComponent(productId)}');
+  }
+
 }
