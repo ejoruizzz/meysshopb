@@ -1,16 +1,12 @@
 import '../models/order.dart';
-
 import '../models/order_item.dart';
 import '../models/order_status.dart';
 import '../models/product.dart';
-
-import '../models/order_status.dart';
 
 import 'api_client.dart';
 import 'order_repository.dart';
 
 class ApiOrderRepository implements OrderRepository {
-
   ApiOrderRepository(
     this._client, {
     this.basePath = '/api/orders',
@@ -19,12 +15,6 @@ class ApiOrderRepository implements OrderRepository {
   final ApiClient _client;
   final String basePath;
 
-  ApiOrderRepository(this._client);
-
-  final ApiClient _client;
-  static const String _basePath = '/api/pedidos';
-
-
   @override
   Future<List<Order>> fetchOrders({String? q, OrderStatus? status}) async {
     final query = <String, dynamic>{};
@@ -32,7 +22,10 @@ class ApiOrderRepository implements OrderRepository {
     if (q != null && q.trim().isNotEmpty) query['q'] = q.trim();
     if (status != null) query['status'] = _statusToString(status);
 
-    final data = await _client.get(basePath, queryParameters: query.isEmpty ? null : query);
+    final data = await _client.get(
+      basePath,
+      queryParameters: query.isEmpty ? null : query,
+    );
     if (data is! List) {
       throw ApiException(500, 'Respuesta inválida al listar pedidos', data: data);
     }
@@ -41,44 +34,19 @@ class ApiOrderRepository implements OrderRepository {
         .whereType<Map<String, dynamic>>()
         .map(_orderFromJson)
         .toList(growable: false);
-
-    if (q != null && q.trim().isNotEmpty) {
-      query['q'] = q.trim();
-    }
-    if (status != null) {
-      query['status'] = status.apiValue;
-    }
-    final data = await _client.get(
-      _basePath,
-      queryParameters: query.isEmpty ? null : query,
-    );
-    if (data is List) {
-      return data
-          .whereType<Map<String, dynamic>>()
-          .map(Order.fromJson)
-          .toList(growable: false);
-    }
-    throw const FormatException('Respuesta inesperada al listar pedidos');
-
   }
 
   @override
   Future<void> updateStatus(String orderId, OrderStatus newStatus) async {
     await _client.patch(
-
-      '$basePath/$orderId',
+      '$basePath/${Uri.encodeComponent(orderId)}/status',
       body: {'status': _statusToString(newStatus)},
-
-      '$_basePath/${Uri.encodeComponent(orderId)}/status',
-      body: {'status': newStatus.apiValue},
-
     );
   }
 
   @override
-  Future<Order> createOrder(Order o) async {
-
-    final data = await _client.post(basePath, body: _orderToJson(o));
+  Future<Order> createOrder(Order order) async {
+    final data = await _client.post(basePath, body: _orderToJson(order));
     if (data is! Map<String, dynamic>) {
       throw ApiException(500, 'Respuesta inválida al crear pedido', data: data);
     }
@@ -219,12 +187,4 @@ class ApiOrderRepository implements OrderRepository {
         'cantidad': product.cantidad,
         'estado': product.estado,
       };
-
-    final data = await _client.post(_basePath, body: o.toJson());
-    if (data is Map<String, dynamic>) {
-      return Order.fromJson(data);
-    }
-    throw const FormatException('Respuesta inesperada al crear pedido');
-  }
-
 }
