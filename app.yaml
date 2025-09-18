@@ -1,0 +1,18 @@
+runtime: nodejs20  # Usa nodejs18 o nodejs20 según tu preferencia
+instance_class: F2
+
+env_variables:
+  NODE_ENV: "production"
+  PORT: 8080   # GAE requiere que tu app escuche en 8080
+  JWT_SECRET: "AAD4103016BF0009D2BF49876A839D28D06506AE60F97B0ACE05EF68842C5154"
+  JWT_REFRESH: "MIICXAIBAAKBgGv/gNS90LWxJPdWS9eP1mYCVtfMTtt3YaWXNNVzvO0D85EP2Y3o"
+
+  DB_USER: "root"
+  DB_PASSWORD: "toshiba"
+  DB_NAME: "backtest"
+  DB_HOST: "127.0.0.1"
+  DB_PORT: "3306"
+
+handlers:
+  - url: /.*
+    script: auto
