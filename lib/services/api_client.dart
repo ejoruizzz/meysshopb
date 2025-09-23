@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -459,12 +460,27 @@ class ApiClient {
 
       completer.complete();
       return true;
-    } catch (e) {
-      clearTokens();
-      if (!completer.isCompleted) {
-        completer.completeError(e);
+    } catch (Object error, StackTrace stackTrace) {
+      if (error is ApiException &&
+          (error.statusCode == 400 || error.statusCode == 401)) {
+        clearTokens();
+        if (!completer.isCompleted) {
+          completer.completeError(error, stackTrace);
+        }
+        return false;
       }
-      return false;
+
+      developer.log(
+        'Error refrescando tokens',
+        name: 'ApiClient',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!completer.isCompleted) {
+        completer.completeError(error, stackTrace);
+      }
+      rethrow;
     } finally {
       if (identical(_refreshCompleter, completer)) {
         _refreshCompleter = null;
