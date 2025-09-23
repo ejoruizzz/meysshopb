@@ -208,9 +208,6 @@ class ApiClient {
       if (request.method.toUpperCase() != upperMethod) {
         throw ArgumentError('Método del request no coincide con $upperMethod');
       }
-      if (request.url != resolvedUri) {
-        request.url = resolvedUri;
-      }
       request.headers.addAll(headers);
       return request;
     }
@@ -518,9 +515,6 @@ class _BaseRequestPayload {
     request.chunkedTransferEncoding = chunkedTransferEncoding;
     if (contentLength != null) {
       request.contentLength = contentLength!;
-    }
-    if (request.url != uri) {
-      request.url = uri;
     }
     request.headers.addAll(headers);
     return request;
