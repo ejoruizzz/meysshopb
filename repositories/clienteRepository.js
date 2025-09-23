@@ -11,16 +11,10 @@ function toPOJO(row) {
     email,
     telefono,
     direccion,
-    price,
-    cantidad,
-    estado,
-    imagen,
     createdAt,
     updatedAt
-  } =
-    row.toJSON ? row.toJSON() : row;
-  const priceNumber = price != null ? Number(price) : null;
-  const cantidadNumber = cantidad != null ? Number(cantidad) : null;
+  } = row.toJSON ? row.toJSON() : row;
+
   return {
     id,
     nombre,
@@ -28,10 +22,6 @@ function toPOJO(row) {
     email,
     telefono,
     direccion,
-    price: priceNumber,
-    cantidad: cantidadNumber,
-    estado,
-    imagen,
     createdAt,
     updatedAt
   };
@@ -43,9 +33,9 @@ module.exports = {
     const where = q
       ? {
           [Op.or]: [
-            { nombre:   { [Op.like]: `%${q}%` } },
+            { nombre: { [Op.like]: `%${q}%` } },
             { apellido: { [Op.like]: `%${q}%` } },
-            { email:    { [Op.like]: `%${q}%` } }
+            { email: { [Op.like]: `%${q}%` } }
           ]
         }
       : {};
@@ -58,9 +48,9 @@ module.exports = {
     const where = q
       ? {
           [Op.or]: [
-            { nombre:   { [Op.like]: `%${q}%` } },
+            { nombre: { [Op.like]: `%${q}%` } },
             { apellido: { [Op.like]: `%${q}%` } },
-            { email:    { [Op.like]: `%${q}%` } }
+            { email: { [Op.like]: `%${q}%` } }
           ]
         }
       : {};

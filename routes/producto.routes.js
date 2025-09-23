@@ -1,13 +1,13 @@
 const express = require('express');
-const adapter = require('../adapters/clienteAdapter');
+const adapter = require('../adapters/productoAdapter');
 const validate = require('../middleware/validate');
 const { requiereAuth, requiereAdmin } = require('../middleware/authJwt');
 const { handleSingle } = require('../middleware/uploadProductImage');
 const {
-  crearClienteRules,
-  actualizarClienteRules,
-  eliminarClienteRules,
-} = require('../middleware/validaciones/cliente');
+  crearProductoRules,
+  actualizarProductoRules,
+  eliminarProductoRules,
+} = require('../middleware/validaciones/producto');
 
 const r = express.Router();
 
@@ -18,7 +18,7 @@ r.post(
   requiereAuth,
   requiereAdmin,
   handleSingle('imagen'),
-  crearClienteRules,
+  crearProductoRules,
   validate,
   adapter.crear,
 );
@@ -28,7 +28,7 @@ r.put(
   requiereAuth,
   requiereAdmin,
   handleSingle('imagen'),
-  actualizarClienteRules,
+  actualizarProductoRules,
   validate,
   adapter.actualizar,
 );
@@ -37,7 +37,7 @@ r.delete(
   '/:id',
   requiereAuth,
   requiereAdmin,
-  eliminarClienteRules,
+  eliminarProductoRules,
   validate,
   adapter.eliminar,
 );
