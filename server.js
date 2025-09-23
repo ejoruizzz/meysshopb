@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
 const app = express()
 require('dotenv').config()
 const bodyParser = require('body-parser');
@@ -23,6 +24,7 @@ app.get('/contact', (req, res) => {
     res.send('Contact Page')
 })
 const db = require('./models/index.js')
+const { Usuario } = require('./models')
 const indexRoutes = require('./routes')
 
 const DEFAULT_FRONTEND_ORIGIN = 'http://localhost:3000'
@@ -51,6 +53,12 @@ const startServer = async () => {
         console.log('Database connection has been established successfully')
 
         await db.sequelize.sync()
+        const adminCount = await Usuario.count({ where: { email: 'admin@example.com' } })
+
+        if (adminCount === 0) {
+            const hash = await bcrypt.hash('admin123', 10)
+            await Usuario.create({ nombre: 'Admin', email: 'admin@example.com', hash, rol: 'admin' })
+        }
         console.log('Database synced successfully')
 
         app.listen(PORT, () => {
