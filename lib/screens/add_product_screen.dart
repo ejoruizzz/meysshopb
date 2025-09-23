@@ -15,13 +15,12 @@ class AddProductScreen extends StatefulWidget {
 
 class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _lastNameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _addressController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _cantidadController = TextEditingController();
+  final _nombreController = TextEditingController();
+  final _descripcionController = TextEditingController();
+  final _categoriaController = TextEditingController();
+  final _precioController = TextEditingController();
+  final _stockController = TextEditingController();
+  final _imagenUrlController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
   File? _selectedImageFile;
@@ -29,14 +28,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _lastNameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _addressController.dispose();
-    _priceController.dispose();
-    _cantidadController.dispose();
+    _nombreController.dispose();
+    _descripcionController.dispose();
+    _categoriaController.dispose();
+    _precioController.dispose();
+    _stockController.dispose();
+    _imagenUrlController.dispose();
     super.dispose();
+  }
+
+  bool _isValidImageUrl(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return false;
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null) return false;
+    final scheme = uri.scheme.toLowerCase();
+    return scheme == 'http' || scheme == 'https';
   }
 
   Future<void> _pickImage() async {
@@ -83,23 +90,25 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedImageFile == null) {
+    final trimmedUrl = _imagenUrlController.text.trim();
+
+    if (_selectedImageFile == null && trimmedUrl.isEmpty) {
       setState(() {
-        _imageError = 'Selecciona una imagen en formato JPG o PNG.';
+        _imageError =
+            'Proporciona una URL de imagen o selecciona un archivo JPG o PNG.';
       });
       return;
     }
 
+    setState(() => _imageError = null);
+
     final product = Product(
-      name: _nameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      email: _emailController.text.trim(),
-      phone: _phoneController.text.trim(),
-      address: _addressController.text.trim(),
-      price: double.parse(_priceController.text.trim()),
-      imageUrl: '',
-      cantidad: int.parse(_cantidadController.text.trim()),
-      estado: "Activo",
+      nombre: _nombreController.text.trim(),
+      descripcion: _descripcionController.text.trim(),
+      categoria: _categoriaController.text.trim(),
+      precio: double.parse(_precioController.text.trim()),
+      stock: int.parse(_stockController.text.trim()),
+      imagenUrl: trimmedUrl,
     );
 
     Navigator.pop(
@@ -120,63 +129,44 @@ class _AddProductScreenState extends State<AddProductScreen> {
             child: Column(
               children: [
                 TextFormField(
-                  controller: _nameController,
+                  controller: _nombreController,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
                     labelText: "Nombre",
                     prefixIcon: Icon(Icons.shopping_bag),
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? "Ingresa el nombre" : null,
                 ),
                 const SizedBox(height: 15),
                 TextFormField(
-                  controller: _lastNameController,
+                  controller: _descripcionController,
+                  textInputAction: TextInputAction.next,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: "Descripción",
+                    alignLabelWithHint: true,
+                    prefixIcon: Icon(Icons.description),
+                  ),
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? "Describe el producto"
+                      : null,
+                ),
+                const SizedBox(height: 15),
+                TextFormField(
+                  controller: _categoriaController,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    labelText: "Apellido",
-                    prefixIcon: Icon(Icons.badge),
+                    labelText: "Categoría",
+                    prefixIcon: Icon(Icons.category),
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? "Indica la categoría"
+                      : null,
                 ),
                 const SizedBox(height: 15),
                 TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: "Email",
-                    prefixIcon: Icon(Icons.email),
-                  ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return "Campo obligatorio";
-                    if (!v.contains('@')) return "Email inválido";
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 15),
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: "Teléfono",
-                    prefixIcon: Icon(Icons.phone),
-                  ),
-                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
-                ),
-                const SizedBox(height: 15),
-                TextFormField(
-                  controller: _addressController,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: "Dirección",
-                    prefixIcon: Icon(Icons.location_on),
-                  ),
-                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
-                ),
-                const SizedBox(height: 15),
-                TextFormField(
-                  controller: _priceController,
+                  controller: _precioController,
                   keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
@@ -186,8 +176,28 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   validator: (v) {
                     if (v == null || v.isEmpty) return "Campo obligatorio";
                     final p = double.tryParse(v);
-                    if (p == null || p <= 0) return "Precio inválido";
+                    if (p == null || p <= 0) return "Ingresa un precio válido";
                     return null;
+                  },
+                ),
+                const SizedBox(height: 15),
+                TextFormField(
+                  controller: _imagenUrlController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: "URL de la imagen (opcional)",
+                    prefixIcon: Icon(Icons.link),
+                  ),
+                  onChanged: (_) {
+                    if (_selectedImageFile == null) {
+                      setState(() {});
+                    }
+                  },
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) return null;
+                    return _isValidImageUrl(value)
+                        ? null
+                        : "Ingresa una URL válida";
                   },
                 ),
                 const SizedBox(height: 15),
@@ -196,7 +206,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   child: TextButton.icon(
                     onPressed: _pickImage,
                     icon: const Icon(Icons.file_upload),
-                    label: const Text('Seleccionar imagen (JPG/PNG)'),
+                    label: const Text('Seleccionar archivo de imagen (JPG/PNG)'),
                   ),
                 ),
                 if (_selectedImageFile != null)
@@ -216,6 +226,28 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     _selectedImageFile!.path.split(Platform.pathSeparator).last,
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
+                if (_selectedImageFile == null &&
+                    _isValidImageUrl(_imagenUrlController.text))
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        _imagenUrlController.text.trim(),
+                        height: 160,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 160,
+                          color: Colors.grey.shade200,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.image_not_supported,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 if (_imageError != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),
@@ -226,17 +258,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                 const SizedBox(height: 15),
                 TextFormField(
-                  controller: _cantidadController,
+                  controller: _stockController,
                   keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.done,
                   decoration: const InputDecoration(
-                    labelText: "Cantidad",
+                    labelText: "Stock disponible",
                     prefixIcon: Icon(Icons.format_list_numbered),
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return "Campo obligatorio";
                     final q = int.tryParse(v);
-                    if (q == null || q < 1) return "Cantidad inválida";
+                    if (q == null || q < 0) return "Ingresa una cantidad válida";
                     return null;
                   },
                 ),

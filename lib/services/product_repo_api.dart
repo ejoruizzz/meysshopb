@@ -55,7 +55,11 @@ class ApiProductRepository implements ProductRepository {
   Future<Product> createProduct(Product p, {File? imageFile}) async {
     final body = imageFile != null
         ? await _multipartRequest('POST', p, imageFile: imageFile)
+
+        : (_toJson(p)..remove('id'));
+
         : (_requestPayload(p)..remove('id'));
+
 
     final data = await _client.post(basePath, body: body);
 
@@ -162,12 +166,38 @@ class ApiProductRepository implements ProductRepository {
     return request;
   }
 
+
+  Map<String, String> _formFields(Product product) {
+    final fields = <String, String>{
+      'nombre': product.nombre.trim(),
+      'descripcion': product.descripcion.trim(),
+      'categoria': product.categoria.trim(),
+      'precio': product.precio.toString(),
+      'price': product.precio.toString(),
+      'stock': product.stock.toString(),
+      'cantidad': product.stock.toString(),
+    };
+
+    final imageUrl = product.imagenUrl.trim();
+    if (imageUrl.isNotEmpty) {
+      fields['imagenUrl'] = imageUrl;
+      fields['imagen_url'] = imageUrl;
+      fields['imageUrl'] = imageUrl;
+    }
+
+    if (product.id != null && product.id!.trim().isNotEmpty) {
+      fields['id'] = product.id!.trim();
+    }
+
+    return fields;
+
   Map<String, String> _formFields(
     Product product, {
     String? idOverride,
   }) {
     final payload = _requestPayload(product, idOverride: idOverride);
     return payload.map((key, value) => MapEntry(key, value.toString()));
+
   }
 
   String _fileName(String path) {
