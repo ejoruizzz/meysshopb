@@ -1,4 +1,3 @@
-
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -38,45 +37,15 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _emailController = TextEditingController(text: widget.product.email);
     _phoneController = TextEditingController(text: widget.product.phone);
     _addressController = TextEditingController(text: widget.product.address);
-    _priceController = TextEditingController(text: widget.product.price.toString());
-    _cantidadController = TextEditingController(text: widget.product.cantidad.toString());
+    _priceController =
+        TextEditingController(text: widget.product.price.toString());
+    _cantidadController =
+        TextEditingController(text: widget.product.cantidad.toString());
     _currentImageUrl = widget.product.imageUrl;
-
-import 'package:flutter/material.dart';
-import '../models/product.dart';
-
-class EditProductScreen extends StatefulWidget {
-  final Product product;
-  const EditProductScreen({super.key, required this.product});
-
-  @override
-  State<EditProductScreen> createState() => _EditProductScreenState();
-}
-
-class _EditProductScreenState extends State<EditProductScreen> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nombreController;
-  late TextEditingController _descripcionController;
-  late TextEditingController _categoriaController;
-  late TextEditingController _precioController;
-  late TextEditingController _imagenController;
-  late TextEditingController _stockController;
-
-  @override
-  void initState() {
-    super.initState();
-    _nombreController = TextEditingController(text: widget.product.nombre);
-    _descripcionController = TextEditingController(text: widget.product.descripcion);
-    _categoriaController = TextEditingController(text: widget.product.categoria);
-    _precioController = TextEditingController(text: widget.product.precio.toString());
-    _imagenController = TextEditingController(text: widget.product.imagenUrl);
-    _stockController = TextEditingController(text: widget.product.stock.toString());
-
   }
 
   @override
   void dispose() {
-
     _nameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
@@ -123,7 +92,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         _selectedImageFile = file;
         _imageError = null;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() => _imageError = 'No se pudo seleccionar la imagen.');
     }
@@ -136,23 +105,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
     });
   }
 
-
-    _nombreController.dispose();
-    _descripcionController.dispose();
-    _categoriaController.dispose();
-    _precioController.dispose();
-    _imagenController.dispose();
-    _stockController.dispose();
-    super.dispose();
-  }
-
-
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
     final updated = Product(
       id: widget.product.id,
-
       name: _nameController.text.trim(),
       lastName: _lastNameController.text.trim(),
       email: _emailController.text.trim(),
@@ -173,129 +130,103 @@ class _EditProductScreenState extends State<EditProductScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Editar Producto")),
+      appBar: AppBar(title: const Text('Editar Producto')),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
             child: Column(
-
-      nombre: _nombreController.text.trim(),
-      descripcion: _descripcionController.text.trim(),
-      categoria: _categoriaController.text.trim(),
-      precio: double.parse(_precioController.text.trim()),
-      imagenUrl: _imagenController.text.trim(),
-      stock: int.parse(_stockController.text.trim()),
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("${updated.nombre} actualizado (demo)")),
-    );
-    Navigator.pop(context, updated); // devolvemos el actualizado
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Editar Producto")),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-
               children: [
                 TextFormField(
-                  controller: _nombreController,
+                  controller: _nameController,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    labelText: "Nombre",
-                    prefixIcon: Icon(Icons.shopping_bag),
+                    labelText: 'Nombre',
+                    prefixIcon: Icon(Icons.person),
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
+                  validator: (value) =>
+                      value == null || value.trim().isEmpty
+                          ? 'Campo obligatorio'
+                          : null,
                 ),
                 const SizedBox(height: 15),
                 TextFormField(
-                  controller: _categoriaController,
+                  controller: _lastNameController,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    labelText: "Categoría",
-                    prefixIcon: Icon(Icons.category),
+                    labelText: 'Apellido',
+                    prefixIcon: Icon(Icons.person_outline),
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
+                  validator: (value) =>
+                      value == null || value.trim().isEmpty
+                          ? 'Campo obligatorio'
+                          : null,
                 ),
                 const SizedBox(height: 15),
                 TextFormField(
-                  controller: _precioController,
-                  keyboardType: TextInputType.number,
+                  controller: _emailController,
                   textInputAction: TextInputAction.next,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: "Precio",
-                    prefixIcon: Icon(Icons.attach_money),
+                    labelText: 'Correo electrónico',
+                    prefixIcon: Icon(Icons.email),
                   ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return "Campo obligatorio";
-                    final p = double.tryParse(v);
-                    if (p == null || p <= 0) return "Precio inválido";
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Campo obligatorio';
+                    }
+                    final email = value.trim();
+                    if (!email.contains('@') || !email.contains('.')) {
+                      return 'Correo inválido';
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 15),
                 TextFormField(
-                  controller: _stockController,
-                  keyboardType: TextInputType.number,
+                  controller: _phoneController,
                   textInputAction: TextInputAction.next,
+                  keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
-                    labelText: "Stock",
-                    prefixIcon: Icon(Icons.inventory_2),
+                    labelText: 'Teléfono',
+                    prefixIcon: Icon(Icons.phone),
                   ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return "Campo obligatorio";
-                    final q = int.tryParse(v);
-                    if (q == null || q < 0) return "Stock inválido";
-                    return null;
-                  },
+                  validator: (value) =>
+                      value == null || value.trim().isEmpty
+                          ? 'Campo obligatorio'
+                          : null,
                 ),
                 const SizedBox(height: 15),
                 TextFormField(
-                  controller: _imagenController,
+                  controller: _addressController,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    labelText: "URL de la imagen",
-                    prefixIcon: Icon(Icons.image),
+                    labelText: 'Dirección',
+                    prefixIcon: Icon(Icons.home),
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
-                  onChanged: (_) => setState(() {}),
+                  validator: (value) =>
+                      value == null || value.trim().isEmpty
+                          ? 'Campo obligatorio'
+                          : null,
                 ),
-                if (_imagenController.text.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        _imagenController.text,
-                        height: 120,
-                        fit: BoxFit.cover,
-                        errorBuilder: (c, e, s) => const Text("No se pudo cargar la imagen"),
-                      ),
-                    ),
-                  ),
                 const SizedBox(height: 15),
                 TextFormField(
-
                   controller: _priceController,
-                  keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.next,
+                  keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: "Precio",
+                    labelText: 'Precio',
                     prefixIcon: Icon(Icons.attach_money),
                   ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return "Campo obligatorio";
-                    final p = double.tryParse(v);
-                    if (p == null || p <= 0) return "Precio inválido";
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Campo obligatorio';
+                    }
+                    final parsed = double.tryParse(value.trim());
+                    if (parsed == null || parsed <= 0) {
+                      return 'Precio inválido';
+                    }
                     return null;
                   },
                 ),
@@ -345,7 +276,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
                         _currentImageUrl,
                         height: 160,
                         fit: BoxFit.cover,
-                        errorBuilder: (c, e, s) => const Text("No se pudo cargar la imagen"),
+                        errorBuilder: (context, _, __) =>
+                            const Text('No se pudo cargar la imagen'),
                       ),
                     ),
                   )
@@ -359,8 +291,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   ),
                 if (_selectedImageFile != null)
                   Text(
-                    _selectedImageFile!.path.split(Platform.pathSeparator).last,
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    _selectedImageFile!.path
+                        .split(Platform.pathSeparator)
+                        .last,
+                    style:
+                        const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 if (_imageError != null)
                   Padding(
@@ -373,43 +308,31 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 const SizedBox(height: 15),
                 TextFormField(
                   controller: _cantidadController,
-                  keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.done,
+                  keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: "Cantidad",
+                    labelText: 'Cantidad',
                     prefixIcon: Icon(Icons.format_list_numbered),
                   ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return "Campo obligatorio";
-                    final q = int.tryParse(v);
-                    if (q == null || q < 1) return "Cantidad inválida";
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Campo obligatorio';
+                    }
+                    final parsed = int.tryParse(value.trim());
+                    if (parsed == null || parsed < 0) {
+                      return 'Cantidad inválida';
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 30),
-                ElevatedButton(onPressed: _submit, child: const Text("Guardar cambios")),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-                  controller: _descripcionController,
-                  textInputAction: TextInputAction.newline,
-                  minLines: 3,
-                  maxLines: 5,
-                  decoration: const InputDecoration(
-                    labelText: "Descripción",
-                    alignLabelWithHint: true,
-                    prefixIcon: Icon(Icons.description),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _submit,
+                    child: const Text('Guardar cambios'),
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
                 ),
-                const SizedBox(height: 30),
-                ElevatedButton(onPressed: _submit, child: const Text("Guardar cambios")),
               ],
             ),
           ),
@@ -418,4 +341,3 @@ class _EditProductScreenState extends State<EditProductScreen> {
     );
   }
 }
-
