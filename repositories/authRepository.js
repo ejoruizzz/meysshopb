@@ -4,8 +4,9 @@ const { Op } = Sequelize;
 
 function toUsuarioPOJO(u) {
   if (!u) return null;
-  const { id, nombre, email, rol, createdAt, updatedAt } = u.toJSON ? u.toJSON() : u;
-  return { id, nombre, email, rol, createdAt, updatedAt };
+  const json = u.toJSON ? u.toJSON() : u;
+  const { id, nombre, email, rol, phone = null, avatarUrl = null, createdAt, updatedAt } = json;
+  return { id, nombre, email, rol, phone, avatarUrl, createdAt, updatedAt };
 }
 
 module.exports = {
@@ -25,9 +26,33 @@ module.exports = {
     return toUsuarioPOJO(u);
   },
 
-  async existeEmail(email, tx) {
-    const n = await Usuario.count({ where: { email }, transaction: tx });
+  async existeEmail(email, { excluirId = null } = {}, tx) {
+    if (email == null) return false;
+    const where = excluirId ? { email, id: { [Op.ne]: excluirId } } : { email };
+    const n = await Usuario.count({ where, transaction: tx });
     return n > 0;
+  },
+
+  async actualizarUsuario(id, data, tx) {
+    if (!id) return null;
+
+    const allowed = ['nombre', 'email', 'phone', 'avatarUrl'];
+    const patch = {};
+    for (const field of allowed) {
+      if (Object.prototype.hasOwnProperty.call(data, field)) {
+        const value = data[field];
+        if (value !== undefined) {
+          patch[field] = value;
+        }
+      }
+    }
+
+    if (Object.keys(patch).length > 0) {
+      await Usuario.update(patch, { where: { id }, transaction: tx });
+    }
+
+    const actualizado = await Usuario.findByPk(id, { transaction: tx });
+    return toUsuarioPOJO(actualizado);
   },
 
   // ====== SESIONES (REFRESH) ======
