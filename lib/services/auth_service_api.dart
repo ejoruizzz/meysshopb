@@ -61,6 +61,45 @@ class ApiAuthService implements AuthService {
   }
 
   @override
+  Future<Usuario> register({
+    required String nombre,
+    required String email,
+    required String password,
+  }) async {
+    final response = await _client.post(
+      '/api/auth/register',
+      body: {
+        'nombre': nombre,
+        'email': email,
+        'password': password,
+      },
+    );
+
+    if (response is! Map<String, dynamic>) {
+      throw ApiException(
+        500,
+        'Respuesta inválida del backend en register',
+        data: response,
+      );
+    }
+
+    final id = response['id']?.toString();
+    final nombreResp = response['nombre']?.toString();
+    final emailResp = response['email']?.toString();
+
+    if (id == null || nombreResp == null || emailResp == null) {
+      throw ApiException(500, 'Registro sin datos válidos', data: response);
+    }
+
+    return Usuario(
+      id: id,
+      nombre: nombreResp,
+      email: emailResp,
+      rol: 'cliente',
+    );
+  }
+
+  @override
   Future<void> logout() async {
     final refresh = _client.refreshToken;
     try {
