@@ -460,7 +460,7 @@ class ApiClient {
 
       completer.complete();
       return true;
-    } catch (Object error, StackTrace stackTrace) {
+    } on Object catch (error, stackTrace) {
       if (error is ApiException &&
           (error.statusCode == 400 || error.statusCode == 401)) {
         clearTokens();
