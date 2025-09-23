@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 /// Error genérico para envolver respuestas HTTP no exitosas.
 class ApiException implements Exception {
@@ -160,27 +161,22 @@ class ApiClient {
 
     final resolvedUri = _resolveUri(path, queryParameters);
     final upperMethod = method.toUpperCase();
-    http.BaseRequest request;
-
-    if (body is http.BaseRequest) {
-      request = body;
-      if (request.method.toUpperCase() != upperMethod) {
-        throw ArgumentError('Método del request no coincide con $upperMethod');
-      }
-      request.url = resolvedUri;
-      request.headers.addAll(_buildHeaders(body: body, extraHeaders: headers));
-    } else {
-      final httpRequest = http.Request(upperMethod, resolvedUri);
-      httpRequest.headers.addAll(_buildHeaders(body: body, extraHeaders: headers));
-
-      final encodedBody = _encodeBody(body);
-      if (encodedBody != null) {
-        httpRequest.body = encodedBody;
-      }
-      request = httpRequest;
+    Object? effectiveBody = body;
+    if (effectiveBody is http.BaseRequest) {
+      effectiveBody = await _BaseRequestPayload.from(effectiveBody);
     }
 
-    http.Response response =
+    final requestHeaders =
+        _buildHeaders(body: effectiveBody, extraHeaders: headers);
+
+    final http.BaseRequest request = await _createHttpRequest(
+      upperMethod: upperMethod,
+      resolvedUri: resolvedUri,
+      body: effectiveBody,
+      headers: requestHeaders,
+    );
+
+    final response =
         await http.Response.fromStream(await _httpClient.send(request));
 
     if (response.statusCode == 401 && retryOnUnauthorized) {
@@ -189,7 +185,7 @@ class ApiClient {
         return _request(
           method,
           path,
-          body: body,
+          body: effectiveBody,
           queryParameters: queryParameters,
           headers: headers,
           retryOnUnauthorized: false,
@@ -200,6 +196,44 @@ class ApiClient {
     return _parseResponse(response);
   }
 
+  Future<http.BaseRequest> _createHttpRequest({
+    required String upperMethod,
+    required Uri resolvedUri,
+    required Object? body,
+    required Map<String, String> headers,
+  }) async {
+    if (body is _BaseRequestPayload) {
+      final request = await body.instantiate(resolvedUri);
+      if (request.method.toUpperCase() != upperMethod) {
+        throw ArgumentError('Método del request no coincide con $upperMethod');
+      }
+      if (request.url != resolvedUri) {
+        request.url = resolvedUri;
+      }
+      request.headers.addAll(headers);
+      return request;
+    }
+
+    if (body is http.BaseRequest) {
+      final payload = await _BaseRequestPayload.from(body);
+      return _createHttpRequest(
+        upperMethod: upperMethod,
+        resolvedUri: resolvedUri,
+        body: payload,
+        headers: headers,
+      );
+    }
+
+    final httpRequest = http.Request(upperMethod, resolvedUri);
+    httpRequest.headers.addAll(headers);
+
+    final encodedBody = _encodeBody(body);
+    if (encodedBody != null) {
+      httpRequest.body = encodedBody;
+    }
+    return httpRequest;
+  }
+
   Map<String, String> _buildHeaders({
     Object? body,
     Map<String, String>? extraHeaders,
@@ -208,7 +242,10 @@ class ApiClient {
       'Accept': 'application/json',
     };
 
-    if (body != null && body is! http.BaseRequest && body is! String) {
+    if (body != null &&
+        body is! http.BaseRequest &&
+        body is! _BaseRequestPayload &&
+        body is! String) {
       headers['Content-Type'] = 'application/json';
     }
 
@@ -420,6 +457,167 @@ class ApiClient {
         _refreshCompleter = null;
       }
     }
+  }
+}
+
+class _BaseRequestPayload {
+  _BaseRequestPayload({
+    required this.method,
+    required this.headers,
+    required this.followRedirects,
+    required this.maxRedirects,
+    required this.persistentConnection,
+    required this.chunkedTransferEncoding,
+    required this.contentLength,
+    required Future<http.BaseRequest> Function(Uri uri) factory,
+  }) : _factory = factory;
+
+  final String method;
+  final Map<String, String> headers;
+  final bool followRedirects;
+  final int maxRedirects;
+  final bool persistentConnection;
+  final bool chunkedTransferEncoding;
+  final int? contentLength;
+  final Future<http.BaseRequest> Function(Uri uri) _factory;
+
+  Future<http.BaseRequest> instantiate(Uri uri) async {
+    final request = await _factory(uri);
+    request.followRedirects = followRedirects;
+    request.maxRedirects = maxRedirects;
+    request.persistentConnection = persistentConnection;
+    request.chunkedTransferEncoding = chunkedTransferEncoding;
+    if (contentLength != null) {
+      request.contentLength = contentLength!;
+    }
+    if (request.url != uri) {
+      request.url = uri;
+    }
+    request.headers.addAll(headers);
+    return request;
+  }
+
+  static Future<_BaseRequestPayload> from(http.BaseRequest request) async {
+    final headersCopy = Map<String, String>.from(request.headers);
+    final followRedirects = request.followRedirects;
+    final maxRedirects = request.maxRedirects;
+    final persistentConnection = request.persistentConnection;
+    final chunkedTransferEncoding = request.chunkedTransferEncoding;
+    final int? originalContentLength = request.contentLength;
+
+    if (request is http.MultipartRequest) {
+      final fields = Map<String, String>.from(request.fields);
+      final encoding = request.encoding;
+      final files = <_MultipartFilePayload>[];
+      for (final file in request.files) {
+        files.add(await _MultipartFilePayload.fromMultipartFile(file));
+      }
+
+      return _BaseRequestPayload(
+        method: request.method,
+        headers: headersCopy,
+        followRedirects: followRedirects,
+        maxRedirects: maxRedirects,
+        persistentConnection: persistentConnection,
+        chunkedTransferEncoding: chunkedTransferEncoding,
+        contentLength: originalContentLength,
+        factory: (Uri uri) async {
+          final clone = http.MultipartRequest(request.method, uri);
+          clone.fields.addAll(fields);
+          clone.encoding = encoding;
+          for (final file in files) {
+            clone.files.add(file.toMultipartFile());
+          }
+          return clone;
+        },
+      );
+    }
+
+    if (request is http.Request) {
+      final encoding = request.encoding;
+      final bodyBytes = request.bodyBytes;
+
+      return _BaseRequestPayload(
+        method: request.method,
+        headers: headersCopy,
+        followRedirects: followRedirects,
+        maxRedirects: maxRedirects,
+        persistentConnection: persistentConnection,
+        chunkedTransferEncoding: chunkedTransferEncoding,
+        contentLength: originalContentLength,
+        factory: (Uri uri) async {
+          final clone = http.Request(request.method, uri);
+          clone.encoding = encoding;
+          clone.bodyBytes = bodyBytes;
+          return clone;
+        },
+      );
+    }
+
+    if (request is http.StreamedRequest) {
+      final bytes = await http.ByteStream(request.finalize()).toBytes();
+      final effectiveContentLength = originalContentLength ??
+          (chunkedTransferEncoding ? null : bytes.length);
+
+      return _BaseRequestPayload(
+        method: request.method,
+        headers: headersCopy,
+        followRedirects: followRedirects,
+        maxRedirects: maxRedirects,
+        persistentConnection: persistentConnection,
+        chunkedTransferEncoding: chunkedTransferEncoding,
+        contentLength: effectiveContentLength,
+        factory: (Uri uri) async {
+          final clone = http.StreamedRequest(request.method, uri);
+          if (effectiveContentLength != null) {
+            clone.contentLength = effectiveContentLength;
+          }
+          clone.sink.add(bytes);
+          await clone.sink.close();
+          return clone;
+        },
+      );
+    }
+
+    throw UnsupportedError(
+      'No es posible clonar automáticamente ${request.runtimeType}. '
+      'Proporciona una nueva solicitud para cada reintento.',
+    );
+  }
+}
+
+class _MultipartFilePayload {
+  _MultipartFilePayload({
+    required this.field,
+    required this.bytes,
+    this.filename,
+    this.contentType,
+  });
+
+  final String field;
+  final List<int> bytes;
+  final String? filename;
+  final MediaType? contentType;
+
+  http.MultipartFile toMultipartFile() {
+    return http.MultipartFile.fromBytes(
+      field,
+      bytes,
+      filename: filename,
+      contentType: contentType,
+    );
+  }
+
+  static Future<_MultipartFilePayload> fromMultipartFile(
+    http.MultipartFile file,
+  ) async {
+    final bytes = await http.ByteStream(file.finalize()).toBytes();
+    return _MultipartFilePayload(
+      field: file.field,
+      bytes: bytes,
+      filename: file.filename,
+      contentType: file.contentType,
+    );
   }
 }
 
