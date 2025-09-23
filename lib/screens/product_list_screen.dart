@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
+import '../models/product_form_result.dart';
 import '../widgets/product_card.dart';
 import 'product_detail_screen.dart';
 import 'edit_product_screen.dart';
@@ -8,7 +9,7 @@ class ProductListScreen extends StatefulWidget {
   final List<Product> products;
   final bool isAdmin;
   final void Function(Product, int qty) onAddToCart;
-  final void Function(int index, Product updated) onEditProduct;
+  final Future<void> Function(int index, ProductFormResult result)? onEditProduct;
 
   const ProductListScreen({
     super.key,
@@ -93,14 +94,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   onAddToCart: widget.isAdmin ? null : () => widget.onAddToCart(product, 1),
                   onEdit: widget.isAdmin
                       ? () async {
-                          final updated = await Navigator.push<Product?>(
+                          final result = await Navigator.push<ProductFormResult?>(
                             context,
                             MaterialPageRoute(
                               builder: (_) => EditProductScreen(product: product),
                             ),
                           );
-                          if (updated != null) {
-                            widget.onEditProduct(originalIndex, updated);
+                          if (result != null && widget.onEditProduct != null) {
+                            await widget.onEditProduct!(originalIndex, result);
                             setState(() {});
                           }
                         }

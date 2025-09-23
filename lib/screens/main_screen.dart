@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/product.dart';
+import '../models/product_form_result.dart';
 import '../models/usuario.dart';
 import '../models/cart_item.dart';
 import '../models/order.dart';
@@ -19,6 +20,7 @@ import 'order_history_screen.dart';
 import 'login_screen.dart';
 
 // Services
+import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/product_repository.dart';
 import '../services/order_repository.dart';
@@ -190,23 +192,61 @@ class _MainScreenState extends State<MainScreen> {
     setState(() => _cart.removeAt(index));
   }
 
-  // ---------- CRUD de productos (dummy); si quisieras persistir, llama a repo y recarga ----------
+  // ---------- CRUD de productos ----------
 
-  Future<void> _createProduct(Product p) async {
-    // En dummy sólo agregamos a la lista local.
-    // Para persistir: await widget.productRepository.createProduct(p); await _loadProducts();
-    setState(() => _products.add(p));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Producto '${p.name}' agregado")),
-    );
+  Future<void> _createProduct(ProductFormResult result) async {
+    if (result.imageFile == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona una imagen para el producto.')),
+      );
+      return;
+    }
+    try {
+      final created = await widget.productRepository.createProduct(
+        result.product,
+        imageFile: result.imageFile,
+      );
+      await _loadProducts();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Producto '${created.name}' agregado")),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al crear producto: $e')),
+      );
+    }
   }
 
-  Future<void> _editProduct(int index, Product updated) async {
-    // Para persistir: await widget.productRepository.updateProduct(updated); await _loadProducts();
-    setState(() => _products[index] = updated);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Producto '${updated.name}' actualizado")),
-    );
+  Future<void> _editProduct(int index, ProductFormResult result) async {
+    try {
+      final updated = await widget.productRepository.updateProduct(
+        result.product,
+        imageFile: result.imageFile,
+      );
+      await _loadProducts();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Producto '${updated.name}' actualizado")),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al actualizar producto: $e')),
+      );
+    }
   }
 
   // ---------- Pedidos ----------
@@ -476,7 +516,7 @@ class _MainScreenState extends State<MainScreen> {
           ? FloatingActionButton(
               backgroundColor: Colors.pink,
               onPressed: () async {
-                final result = await Navigator.push<Product?>(
+                final result = await Navigator.push<ProductFormResult?>(
                   context,
                   MaterialPageRoute(builder: (_) => const AddProductScreen()),
                 );

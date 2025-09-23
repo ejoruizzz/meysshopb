@@ -1,5 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../models/product.dart';
+import '../models/product_form_result.dart';
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -16,8 +21,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   final _priceController = TextEditingController();
-  final _imageController = TextEditingController();
   final _cantidadController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
+
+  File? _selectedImageFile;
+  String? _imageError;
 
   @override
   void dispose() {
@@ -27,13 +35,60 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _phoneController.dispose();
     _addressController.dispose();
     _priceController.dispose();
-    _imageController.dispose();
     _cantidadController.dispose();
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    setState(() => _imageError = null);
+    try {
+      final picked = await _picker.pickImage(source: ImageSource.gallery);
+      if (picked == null) {
+        return;
+      }
+
+      final lowerName = picked.name.toLowerCase();
+      const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+      final hasAllowedExtension =
+          allowedExtensions.any((ext) => lowerName.endsWith(ext));
+      if (!hasAllowedExtension) {
+        setState(() {
+          _imageError = 'Formato no permitido. Usa JPG o PNG.';
+          _selectedImageFile = null;
+        });
+        return;
+      }
+
+      final file = File(picked.path);
+      final bytes = await file.length();
+      const maxBytes = 5 * 1024 * 1024; // 5MB
+      if (bytes > maxBytes) {
+        setState(() {
+          _imageError = 'La imagen supera los 5MB permitidos.';
+          _selectedImageFile = null;
+        });
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _selectedImageFile = file;
+        _imageError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _imageError = 'No se pudo seleccionar la imagen.');
+    }
+  }
+
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedImageFile == null) {
+      setState(() {
+        _imageError = 'Selecciona una imagen en formato JPG o PNG.';
+      });
+      return;
+    }
 
     final product = Product(
       name: _nameController.text.trim(),
@@ -42,19 +97,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
       phone: _phoneController.text.trim(),
       address: _addressController.text.trim(),
       price: double.parse(_priceController.text.trim()),
-      imageUrl: _imageController.text.trim(),
+      imageUrl: '',
       cantidad: int.parse(_cantidadController.text.trim()),
       estado: "Activo",
     );
 
-    final fullName = [product.name, product.lastName]
-        .where((element) => element.isNotEmpty)
-        .join(' ')
-        .trim();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("${fullName.isEmpty ? product.name : fullName} agregado (demo)")),
+    Navigator.pop(
+      context,
+      ProductFormResult(product: product, imageFile: _selectedImageFile),
     );
-    Navigator.pop(context, product); // devolvemos el producto creado
   }
 
   @override
@@ -140,27 +191,37 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   },
                 ),
                 const SizedBox(height: 15),
-                TextFormField(
-                  controller: _imageController,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: "URL de la imagen",
-                    prefixIcon: Icon(Icons.image),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.file_upload),
+                    label: const Text('Seleccionar imagen (JPG/PNG)'),
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
-                  onChanged: (_) => setState(() {}),
                 ),
-                if (_imageController.text.isNotEmpty)
+                if (_selectedImageFile != null)
                   Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        _imageController.text,
-                        height: 120,
+                      child: Image.file(
+                        _selectedImageFile!,
+                        height: 160,
                         fit: BoxFit.cover,
-                        errorBuilder: (c, e, s) => const Text("No se pudo cargar la imagen"),
                       ),
+                    ),
+                  ),
+                if (_selectedImageFile != null)
+                  Text(
+                    _selectedImageFile!.path.split(Platform.pathSeparator).last,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                if (_imageError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      _imageError!,
+                      style: const TextStyle(color: Colors.red),
                     ),
                   ),
                 const SizedBox(height: 15),

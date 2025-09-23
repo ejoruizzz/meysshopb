@@ -14,6 +14,8 @@ app.use(express.urlencoded({
 }));
 const PORT = process.env.PORT || 3001
 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 app.get('/', (req, res) => {
     res.send('Hello World!')
 })

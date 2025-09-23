@@ -1,5 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../models/product.dart';
+import '../models/product_form_result.dart';
 
 class EditProductScreen extends StatefulWidget {
   final Product product;
@@ -17,8 +22,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
   late TextEditingController _priceController;
-  late TextEditingController _imageController;
   late TextEditingController _cantidadController;
+  final ImagePicker _picker = ImagePicker();
+
+  File? _selectedImageFile;
+  String? _imageError;
+  late String _currentImageUrl;
 
   @override
   void initState() {
@@ -29,8 +38,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _phoneController = TextEditingController(text: widget.product.phone);
     _addressController = TextEditingController(text: widget.product.address);
     _priceController = TextEditingController(text: widget.product.price.toString());
-    _imageController = TextEditingController(text: widget.product.imageUrl);
     _cantidadController = TextEditingController(text: widget.product.cantidad.toString());
+    _currentImageUrl = widget.product.imageUrl;
   }
 
   @override
@@ -41,9 +50,57 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _phoneController.dispose();
     _addressController.dispose();
     _priceController.dispose();
-    _imageController.dispose();
     _cantidadController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    setState(() => _imageError = null);
+    try {
+      final picked = await _picker.pickImage(source: ImageSource.gallery);
+      if (picked == null) {
+        return;
+      }
+
+      final lowerName = picked.name.toLowerCase();
+      const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+      final hasAllowedExtension =
+          allowedExtensions.any((ext) => lowerName.endsWith(ext));
+      if (!hasAllowedExtension) {
+        setState(() {
+          _imageError = 'Formato no permitido. Usa JPG o PNG.';
+          _selectedImageFile = null;
+        });
+        return;
+      }
+
+      final file = File(picked.path);
+      final bytes = await file.length();
+      const maxBytes = 5 * 1024 * 1024;
+      if (bytes > maxBytes) {
+        setState(() {
+          _imageError = 'La imagen supera los 5MB permitidos.';
+          _selectedImageFile = null;
+        });
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _selectedImageFile = file;
+        _imageError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _imageError = 'No se pudo seleccionar la imagen.');
+    }
+  }
+
+  void _clearSelectedImage() {
+    setState(() {
+      _selectedImageFile = null;
+      _imageError = null;
+    });
   }
 
   void _submit() {
@@ -57,19 +114,15 @@ class _EditProductScreenState extends State<EditProductScreen> {
       phone: _phoneController.text.trim(),
       address: _addressController.text.trim(),
       price: double.parse(_priceController.text.trim()),
-      imageUrl: _imageController.text.trim(),
+      imageUrl: _currentImageUrl,
       cantidad: int.parse(_cantidadController.text.trim()),
       estado: widget.product.estado,
     );
 
-    final fullName = [updated.name, updated.lastName]
-        .where((element) => element.isNotEmpty)
-        .join(' ')
-        .trim();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("${fullName.isEmpty ? updated.name : fullName} actualizado (demo)")),
+    Navigator.pop(
+      context,
+      ProductFormResult(product: updated, imageFile: _selectedImageFile),
     );
-    Navigator.pop(context, updated); // devolvemos el actualizado
   }
 
   @override
@@ -155,27 +208,74 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   },
                 ),
                 const SizedBox(height: 15),
-                TextFormField(
-                  controller: _imageController,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: "URL de la imagen",
-                    prefixIcon: Icon(Icons.image),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      TextButton.icon(
+                        onPressed: _pickImage,
+                        icon: const Icon(Icons.file_upload),
+                        label: Text(
+                          _selectedImageFile == null
+                              ? 'Seleccionar nueva imagen'
+                              : 'Cambiar imagen seleccionada',
+                        ),
+                      ),
+                      if (_selectedImageFile != null)
+                        TextButton.icon(
+                          onPressed: _clearSelectedImage,
+                          icon: const Icon(Icons.cancel),
+                          label: const Text('Cancelar cambio'),
+                        ),
+                    ],
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
-                  onChanged: (_) => setState(() {}),
                 ),
-                if (_imageController.text.isNotEmpty)
+                if (_selectedImageFile != null)
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        _selectedImageFile!,
+                        height: 160,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  )
+                else if (_currentImageUrl.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.network(
-                        _imageController.text,
-                        height: 120,
+                        _currentImageUrl,
+                        height: 160,
                         fit: BoxFit.cover,
                         errorBuilder: (c, e, s) => const Text("No se pudo cargar la imagen"),
                       ),
+                    ),
+                  )
+                else
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.0),
+                    child: Text(
+                      'Sin imagen actual',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                if (_selectedImageFile != null)
+                  Text(
+                    _selectedImageFile!.path.split(Platform.pathSeparator).last,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                if (_imageError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      _imageError!,
+                      style: const TextStyle(color: Colors.red),
                     ),
                   ),
                 const SizedBox(height: 15),

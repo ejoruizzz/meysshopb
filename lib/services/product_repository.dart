@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../models/product.dart';
 
 /// Contrato de acceso a productos.
@@ -7,10 +9,10 @@ abstract class ProductRepository {
   Future<List<Product>> fetchProducts({String? search});
 
   /// Crea un producto y devuelve el creado.
-  Future<Product> createProduct(Product p);
+  Future<Product> createProduct(Product p, {File? imageFile});
 
   /// Actualiza un producto y devuelve el guardado.
-  Future<Product> updateProduct(Product p);
+  Future<Product> updateProduct(Product p, {File? imageFile});
 
   /// Elimina un producto por su identificador.
   /// En dummy usaremos `name` como llave temporal.

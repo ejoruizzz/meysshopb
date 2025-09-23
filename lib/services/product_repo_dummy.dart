@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+
 import '../models/product.dart';
 import 'product_repository.dart';
 
@@ -32,7 +34,7 @@ class DummyProductRepository implements ProductRepository {
   }
 
   @override
-  Future<Product> createProduct(Product p) async {
+  Future<Product> createProduct(Product p, {File? imageFile}) async {
     bool _sameIdentity(Product a, Product b) {
       if (a.id != null && b.id != null) {
         return a.id == b.id;
@@ -56,7 +58,7 @@ class DummyProductRepository implements ProductRepository {
   }
 
   @override
-  Future<Product> updateProduct(Product p) async {
+  Future<Product> updateProduct(Product p, {File? imageFile}) async {
     int _indexOf(Product product) {
       if (product.id != null) {
         final idx = _store.indexWhere((x) => x.id == product.id);
