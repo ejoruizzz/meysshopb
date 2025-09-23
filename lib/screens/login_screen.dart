@@ -5,6 +5,7 @@ import '../models/order.dart';
 import '../models/order_item.dart';
 import '../models/order_status.dart';
 import 'main_screen.dart';
+import 'register_screen.dart';
 
 // Services
 import '../services/auth_service.dart';
@@ -84,6 +85,24 @@ class _LoginScreenState extends State<LoginScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _openRegister() async {
+    FocusScope.of(context).unfocus();
+    final result = await Navigator.push<RegisterResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RegisterScreen(authService: widget.authService),
+      ),
+    );
+
+    if (!mounted || result == null) return;
+    _emailCtl.text = result.email;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Cuenta creada exitosamente. Inicia sesión con tus credenciales.'),
+      ),
+    );
   }
 
   List<Order> _seedOrdersIfNeeded(Usuario user, List<Product> products) {
@@ -206,6 +225,18 @@ class _LoginScreenState extends State<LoginScreen> {
                             )
                           : const Text("Iniciar sesión"),
                     ),
+                  ),
+
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('¿No tienes cuenta?'),
+                      TextButton(
+                        onPressed: _loading ? null : _openRegister,
+                        child: const Text('Crear cuenta'),
+                      ),
+                    ],
                   ),
 
                   const SizedBox(height: 18),
