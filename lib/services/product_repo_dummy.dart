@@ -17,45 +17,35 @@ class DummyProductRepository implements ProductRepository {
   Future<List<Product>> fetchProducts({String? search}) async {
     await Future.delayed(const Duration(milliseconds: 150)); // micro delay demo
 
-import '../models/product.dart';
-import 'product_repository.dart';
-
-/// Repositorio en memoria para DEMO/MVP.
-class DummyProductRepository implements ProductRepository {
-  final List<Product> _store;
-
-  /// Pasa una lista inicial de productos (por ejemplo los de main.dart).
-  DummyProductRepository(List<Product> initial) : _store = List.from(initial);
-
-  @override
-  Future<List<Product>> fetchProducts({String? search}) async {
-    await Future.delayed(const Duration(milliseconds: 150)); // micro delay demo
-
     if (search == null || search.trim().isEmpty) {
       // Devolvemos copia inmutable para evitar mutaciones externas
       return List<Product>.unmodifiable(_store);
     }
-    final q = search.toLowerCase();
+
+    final query = search.toLowerCase();
     return _store
-        .where((p) {
-          final terms = <String>{
-            p.nombre,
-            p.categoria,
-            p.descripcion,
-          }..removeWhere((element) => element.trim().isEmpty);
-          return terms.any((term) => term.toLowerCase().contains(q));
+        .where((product) {
+          final searchableValues = <String>[
+            product.nombre,
+            product.descripcion,
+            product.categoria,
+            product.imagenUrl,
+          ]
+              .where((value) => value.trim().isNotEmpty)
+              .map((value) => value.toLowerCase());
+
+          if (searchableValues.any((value) => value.contains(query))) {
+            return true;
+          }
+
+          return product.stock.toString().contains(query);
         })
         .toList(growable: false);
   }
 
   @override
-
   Future<Product> createProduct(Product p, {File? imageFile}) async {
-    bool _sameIdentity(Product a, Product b) {
-
-  Future<Product> createProduct(Product p) async {
     bool sameIdentity(Product a, Product b) {
-
       if (a.id != null && b.id != null) {
         return a.id == b.id;
       }
@@ -78,13 +68,8 @@ class DummyProductRepository implements ProductRepository {
   }
 
   @override
-
   Future<Product> updateProduct(Product p, {File? imageFile}) async {
-    int _indexOf(Product product) {
-
-  Future<Product> updateProduct(Product p) async {
     int indexOf(Product product) {
-
       if (product.id != null) {
         final idx = _store.indexWhere((x) => x.id == product.id);
         if (idx != -1) return idx;
@@ -116,7 +101,7 @@ class DummyProductRepository implements ProductRepository {
       }
       final name = x.nombre.trim().toLowerCase();
       if (name == normalized) return true;
-      final catKey = '${name}|${x.categoria.trim().toLowerCase()}';
+      final catKey = '$name|${x.categoria.trim().toLowerCase()}';
       return catKey == normalized;
     });
     if (_store.length == before) {
