@@ -4,7 +4,7 @@ import 'package:meysshop_front1/main.dart';
 
 void main() {
   testWidgets('Login screen shows welcome texts', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(MyApp());
     await tester.pumpAndSettle();
 
     expect(find.text('Bienvenido a Meysshop'), findsOneWidget);
