@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const app = express()
 require('dotenv').config()
@@ -21,7 +22,7 @@ app.get('/about', (req, res) => {
 app.get('/contact', (req, res) => {
     res.send('Contact Page')
 })
-const db = require('./models/index.js')
+const db = require(path.join(__dirname, 'models'))
 const indexRoutes = require('./routes')
 
 app.use(cors({ origin: process.env.FRONTEND_URL ?? '*', credentials: true }));
