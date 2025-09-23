@@ -110,22 +110,24 @@ class _MainScreenState extends State<MainScreen> {
     if (a.id != null && b.id != null) {
       return a.id == b.id;
     }
-    return _productDisplayName(a).toLowerCase() ==
-        _productDisplayName(b).toLowerCase();
+    final nameA = a.nombre.trim().toLowerCase();
+    final nameB = b.nombre.trim().toLowerCase();
+    if (nameA != nameB) return false;
+    final categoryA = a.categoria.trim().toLowerCase();
+    final categoryB = b.categoria.trim().toLowerCase();
+    if (categoryA.isEmpty || categoryB.isEmpty) return true;
+    return categoryA == categoryB;
   }
 
   String _productDisplayName(Product product) {
-    final fullName = [product.name, product.lastName]
-        .where((element) => element.isNotEmpty)
-        .join(' ')
-        .trim();
-    return fullName.isEmpty ? product.name : fullName;
+    final name = product.nombre.trim();
+    return name.isEmpty ? 'Producto' : name;
   }
 
   int _availableStockOf(Product product) {
     final match = _products.where((p) => _sameProduct(p, product));
-    if (match.isNotEmpty) return match.first.cantidad;
-    return product.cantidad;
+    if (match.isNotEmpty) return match.first.stock;
+    return product.stock;
   }
 
   int _qtyInCartOf(Product product) {
@@ -197,7 +199,7 @@ class _MainScreenState extends State<MainScreen> {
     // Para persistir: await widget.productRepository.createProduct(p); await _loadProducts();
     setState(() => _products.add(p));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Producto '${p.name}' agregado")),
+      SnackBar(content: Text("Producto '${p.nombre}' agregado")),
     );
   }
 
@@ -205,7 +207,7 @@ class _MainScreenState extends State<MainScreen> {
     // Para persistir: await widget.productRepository.updateProduct(updated); await _loadProducts();
     setState(() => _products[index] = updated);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Producto '${updated.name}' actualizado")),
+      SnackBar(content: Text("Producto '${updated.nombre}' actualizado")),
     );
   }
 

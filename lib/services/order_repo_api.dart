@@ -146,56 +146,17 @@ class ApiOrderRepository implements OrderRepository {
   }
 
   Product _productFromJson(Map<String, dynamic> json) {
-    double _double(dynamic value) {
-      if (value is num) return value.toDouble();
-      if (value is String) return double.tryParse(value) ?? 0;
-      return 0;
-    }
-
-    int _int(dynamic value) {
-      if (value is num) return value.toInt();
-      if (value is String) return int.tryParse(value) ?? 0;
-      return 0;
-    }
-
-    String _string(dynamic value, [String fallback = '']) {
-      if (value is String) return value;
-      return value?.toString() ?? fallback;
-    }
-
-    return Product(
-      id: json['id']?.toString(),
-      name: _string(json['nombre'] ?? json['name']),
-      lastName: _string(json['apellido'] ?? json['lastName']),
-      email: _string(json['email'] ?? json['correo']),
-      phone: _string(json['telefono'] ?? json['phone']),
-      address: _string(json['direccion'] ?? json['address']),
-      price: _double(json['price']),
-      imageUrl: _string(json['imageUrl'] ?? json['imagen']),
-      cantidad: _int(json['cantidad'] ?? json['stock']),
-      estado: _string(json['estado'] ?? 'Activo'),
-    );
+    return Product.fromJson(json);
   }
 
   Product _emptyProduct() => const Product(
-        name: '',
-        price: 0,
-        imageUrl: '',
-        cantidad: 0,
-        estado: 'Activo',
+        nombre: '',
+        descripcion: '',
+        precio: 0,
+        stock: 0,
+        categoria: '',
+        imagenUrl: '',
       );
 
-  Map<String, dynamic> _productToJson(Product product) => {
-        'nombre': product.name,
-        'name': product.name,
-        'apellido': product.lastName,
-        'lastName': product.lastName,
-        'email': product.email,
-        'telefono': product.phone,
-        'direccion': product.address,
-        'price': product.price,
-        'imageUrl': product.imageUrl,
-        'cantidad': product.cantidad,
-        'estado': product.estado,
-      };
+  Map<String, dynamic> _productToJson(Product product) => product.toJson();
 }

@@ -304,8 +304,8 @@ class _OrderCard extends StatelessWidget {
                   for (final it in order.items)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(it.productSnapshot.name),
-                      subtitle: Text("Cantidad: ${it.qty} • \$${it.productSnapshot.price.toStringAsFixed(2)}"),
+                      title: Text(it.productSnapshot.nombre),
+                      subtitle: Text("Cantidad: ${it.qty} • \$${it.productSnapshot.precio.toStringAsFixed(2)}"),
                       trailing: Text(
                         "\$${it.subtotal.toStringAsFixed(2)}",
                         style: const TextStyle(fontWeight: FontWeight.bold),

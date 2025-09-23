@@ -11,38 +11,32 @@ class EditProductScreen extends StatefulWidget {
 
 class _EditProductScreenState extends State<EditProductScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
-  late TextEditingController _lastNameController;
-  late TextEditingController _emailController;
-  late TextEditingController _phoneController;
-  late TextEditingController _addressController;
-  late TextEditingController _priceController;
-  late TextEditingController _imageController;
-  late TextEditingController _cantidadController;
+  late TextEditingController _nombreController;
+  late TextEditingController _descripcionController;
+  late TextEditingController _categoriaController;
+  late TextEditingController _precioController;
+  late TextEditingController _imagenController;
+  late TextEditingController _stockController;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.product.name);
-    _lastNameController = TextEditingController(text: widget.product.lastName);
-    _emailController = TextEditingController(text: widget.product.email);
-    _phoneController = TextEditingController(text: widget.product.phone);
-    _addressController = TextEditingController(text: widget.product.address);
-    _priceController = TextEditingController(text: widget.product.price.toString());
-    _imageController = TextEditingController(text: widget.product.imageUrl);
-    _cantidadController = TextEditingController(text: widget.product.cantidad.toString());
+    _nombreController = TextEditingController(text: widget.product.nombre);
+    _descripcionController = TextEditingController(text: widget.product.descripcion);
+    _categoriaController = TextEditingController(text: widget.product.categoria);
+    _precioController = TextEditingController(text: widget.product.precio.toString());
+    _imagenController = TextEditingController(text: widget.product.imagenUrl);
+    _stockController = TextEditingController(text: widget.product.stock.toString());
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _lastNameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _addressController.dispose();
-    _priceController.dispose();
-    _imageController.dispose();
-    _cantidadController.dispose();
+    _nombreController.dispose();
+    _descripcionController.dispose();
+    _categoriaController.dispose();
+    _precioController.dispose();
+    _imagenController.dispose();
+    _stockController.dispose();
     super.dispose();
   }
 
@@ -51,23 +45,16 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
     final updated = Product(
       id: widget.product.id,
-      name: _nameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      email: _emailController.text.trim(),
-      phone: _phoneController.text.trim(),
-      address: _addressController.text.trim(),
-      price: double.parse(_priceController.text.trim()),
-      imageUrl: _imageController.text.trim(),
-      cantidad: int.parse(_cantidadController.text.trim()),
-      estado: widget.product.estado,
+      nombre: _nombreController.text.trim(),
+      descripcion: _descripcionController.text.trim(),
+      categoria: _categoriaController.text.trim(),
+      precio: double.parse(_precioController.text.trim()),
+      imagenUrl: _imagenController.text.trim(),
+      stock: int.parse(_stockController.text.trim()),
     );
 
-    final fullName = [updated.name, updated.lastName]
-        .where((element) => element.isNotEmpty)
-        .join(' ')
-        .trim();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("${fullName.isEmpty ? updated.name : fullName} actualizado (demo)")),
+      SnackBar(content: Text("${updated.nombre} actualizado (demo)")),
     );
     Navigator.pop(context, updated); // devolvemos el actualizado
   }
@@ -84,7 +71,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
             child: Column(
               children: [
                 TextFormField(
-                  controller: _nameController,
+                  controller: _nombreController,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
                     labelText: "Nombre",
@@ -94,53 +81,17 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 ),
                 const SizedBox(height: 15),
                 TextFormField(
-                  controller: _lastNameController,
+                  controller: _categoriaController,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    labelText: "Apellido",
-                    prefixIcon: Icon(Icons.badge),
+                    labelText: "Categoría",
+                    prefixIcon: Icon(Icons.category),
                   ),
                   validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
                 ),
                 const SizedBox(height: 15),
                 TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: "Email",
-                    prefixIcon: Icon(Icons.email),
-                  ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return "Campo obligatorio";
-                    if (!v.contains('@')) return "Email inválido";
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 15),
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: "Teléfono",
-                    prefixIcon: Icon(Icons.phone),
-                  ),
-                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
-                ),
-                const SizedBox(height: 15),
-                TextFormField(
-                  controller: _addressController,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: "Dirección",
-                    prefixIcon: Icon(Icons.location_on),
-                  ),
-                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
-                ),
-                const SizedBox(height: 15),
-                TextFormField(
-                  controller: _priceController,
+                  controller: _precioController,
                   keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
@@ -156,7 +107,23 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 ),
                 const SizedBox(height: 15),
                 TextFormField(
-                  controller: _imageController,
+                  controller: _stockController,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: "Stock",
+                    prefixIcon: Icon(Icons.inventory_2),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return "Campo obligatorio";
+                    final q = int.tryParse(v);
+                    if (q == null || q < 0) return "Stock inválido";
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 15),
+                TextFormField(
+                  controller: _imagenController,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
                     labelText: "URL de la imagen",
@@ -165,13 +132,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
                   onChanged: (_) => setState(() {}),
                 ),
-                if (_imageController.text.isNotEmpty)
+                if (_imagenController.text.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.network(
-                        _imageController.text,
+                        _imagenController.text,
                         height: 120,
                         fit: BoxFit.cover,
                         errorBuilder: (c, e, s) => const Text("No se pudo cargar la imagen"),
@@ -180,19 +147,16 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   ),
                 const SizedBox(height: 15),
                 TextFormField(
-                  controller: _cantidadController,
-                  keyboardType: TextInputType.number,
-                  textInputAction: TextInputAction.done,
+                  controller: _descripcionController,
+                  textInputAction: TextInputAction.newline,
+                  minLines: 3,
+                  maxLines: 5,
                   decoration: const InputDecoration(
-                    labelText: "Cantidad",
-                    prefixIcon: Icon(Icons.format_list_numbered),
+                    labelText: "Descripción",
+                    alignLabelWithHint: true,
+                    prefixIcon: Icon(Icons.description),
                   ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return "Campo obligatorio";
-                    final q = int.tryParse(v);
-                    if (q == null || q < 1) return "Cantidad inválida";
-                    return null;
-                  },
+                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
                 ),
                 const SizedBox(height: 30),
                 ElevatedButton(onPressed: _submit, child: const Text("Guardar cambios")),

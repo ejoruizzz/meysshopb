@@ -30,14 +30,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final query = _query.trim().toLowerCase();
     final filtered = widget.products.where((p) {
       if (query.isEmpty) return true;
-      final fullName =
-          [p.name, p.lastName].where((element) => element.isNotEmpty).join(' ').trim();
       final searchTargets = <String>{
-        p.name,
-        p.lastName,
-        fullName,
-        p.email,
-        p.phone,
+        p.nombre,
+        p.categoria,
+        p.descripcion,
       }..removeWhere((value) => value.trim().isEmpty);
       return searchTargets.any((value) => value.toLowerCase().contains(query));
     }).toList();
@@ -69,7 +65,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 final originalIndex = widget.products.indexOf(product);
 
                 final bool showInventoryForThisCard =
-                    widget.isAdmin || (!widget.isAdmin && product.cantidad < 5);
+                    widget.isAdmin || (!widget.isAdmin && product.stock < 5);
 
                 return ProductCard(
                   product: product,

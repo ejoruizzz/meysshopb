@@ -2,23 +2,25 @@ import '../models/product.dart';
 import 'api_client.dart';
 import 'product_repository.dart';
 
-/// Implementación que consume la API REST (por ahora /api/clientes).
+/// Implementación que consume la API REST de productos.
 class ApiProductRepository implements ProductRepository {
   ApiProductRepository(
     this._client, {
-    this.basePath = '/api/clientes',
+    this.basePath = '/api/productos',
   });
 
   final ApiClient _client;
   final String basePath;
 
-  final Map<String, String> _idByCacheKey = {};
+  final Map<String, String> _idCache = {};
 
   @override
   Future<List<Product>> fetchProducts({String? search}) async {
     final query = <String, dynamic>{};
     if (search != null && search.trim().isNotEmpty) {
-      query['q'] = search.trim();
+      final value = search.trim();
+      query['q'] = value;
+      query['search'] = value;
     }
 
     final data = await _client.get(
@@ -33,11 +35,11 @@ class ApiProductRepository implements ProductRepository {
       );
     }
 
-    _idByCacheKey.clear();
+    _idCache.clear();
     final products = <Product>[];
     for (final item in data) {
       if (item is! Map<String, dynamic>) continue;
-      final product = _fromJson(item);
+      final product = Product.fromJson(item);
       products.add(product);
       _cacheId(product, item);
     }
@@ -46,7 +48,8 @@ class ApiProductRepository implements ProductRepository {
 
   @override
   Future<Product> createProduct(Product p) async {
-    final data = await _client.post(basePath, body: _toJson(p));
+    final payload = _toJson(p)..remove('id');
+    final data = await _client.post(basePath, body: payload);
     if (data is! Map<String, dynamic>) {
       throw ApiException(
         500,
@@ -54,7 +57,7 @@ class ApiProductRepository implements ProductRepository {
         data: data,
       );
     }
-    final created = _fromJson(data);
+    final created = Product.fromJson(data);
     _cacheId(created, data);
     return created;
   }
@@ -65,7 +68,7 @@ class ApiProductRepository implements ProductRepository {
     if (id == null) {
       throw ApiException(
         400,
-        'No se encontró identificador para el producto ${p.name}',
+        'No se encontró identificador para el producto ${p.nombre}',
       );
     }
     final data = await _client.put('$basePath/$id', body: _toJson(p));
@@ -76,85 +79,51 @@ class ApiProductRepository implements ProductRepository {
         data: data,
       );
     }
-    final updated = _fromJson(data);
+    final updated = Product.fromJson(data);
     _cacheId(updated, data);
     return updated;
   }
 
   @override
   Future<void> deleteProduct(String productId) async {
-    final id =
-        productId.isNotEmpty ? (_idByCacheKey[productId] ?? productId) : null;
-    if (id == null) {
+    if (productId.trim().isEmpty) {
       throw ApiException(400, 'ID de producto inválido');
     }
+    final normalized = productId.trim().toLowerCase();
+    final id = _idCache[normalized] ?? _idCache[productId] ?? productId;
     await _client.delete('$basePath/$id');
-    _idByCacheKey.removeWhere((_, value) => value == id);
+    _idCache.removeWhere((_, value) => value == id);
   }
 
   void _cacheId(Product product, Map<String, dynamic> data) {
-    final rawId = data['id'];
+    final rawId = data['id'] ?? data['productoId'] ?? data['productId'];
     if (rawId == null) return;
     final id = rawId.toString();
-    _idByCacheKey[_cacheKey(product)] = id;
-    _idByCacheKey[id] = id;
+    final keys = <String>{
+      id,
+      if (product.id != null && product.id!.isNotEmpty) product.id!,
+      product.nombre.trim().toLowerCase(),
+      '${product.nombre.trim().toLowerCase()}|${product.categoria.trim().toLowerCase()}',
+    }..removeWhere((element) => element.isEmpty);
+    for (final key in keys) {
+      _idCache[key] = id;
+    }
   }
 
   String? _lookupId(Product product) {
-    final key = _cacheKey(product);
-    return _idByCacheKey[key];
+    if (product.id != null && product.id!.isNotEmpty) {
+      return product.id;
+    }
+    final keys = <String>[
+      product.nombre.trim().toLowerCase(),
+      '${product.nombre.trim().toLowerCase()}|${product.categoria.trim().toLowerCase()}',
+    ];
+    for (final key in keys) {
+      final id = _idCache[key];
+      if (id != null) return id;
+    }
+    return null;
   }
 
-  String _cacheKey(Product product) {
-    final fullName = [product.name, product.lastName]
-        .where((element) => element.isNotEmpty)
-        .join(' ')
-        .trim();
-    return (fullName.isEmpty ? product.name : fullName).toLowerCase();
-  }
-
-  Product _fromJson(Map<String, dynamic> json) {
-    double _double(dynamic value) {
-      if (value is num) return value.toDouble();
-      if (value is String) return double.tryParse(value) ?? 0;
-      return 0;
-    }
-
-    int _int(dynamic value) {
-      if (value is num) return value.toInt();
-      if (value is String) return int.tryParse(value) ?? 0;
-      return 0;
-    }
-
-    String _string(dynamic value, [String fallback = '']) {
-      if (value is String) return value;
-      return value?.toString() ?? fallback;
-    }
-
-    return Product(
-      id: json['id']?.toString(),
-      name: _string(json['nombre'] ?? json['name']),
-      lastName: _string(json['apellido'] ?? json['lastName']),
-      email: _string(json['email'] ?? json['correo']),
-      phone: _string(json['telefono'] ?? json['phone']),
-      address: _string(json['direccion'] ?? json['address']),
-      price: _double(json['price']),
-      imageUrl: _string(json['imageUrl'] ?? json['imagen']),
-      cantidad: _int(json['cantidad'] ?? json['stock']),
-      estado: _string(json['estado'], 'Activo'),
-    );
-  }
-
-  Map<String, dynamic> _toJson(Product product) => {
-        'nombre': product.name,
-        'name': product.name,
-        'apellido': product.lastName,
-        'email': product.email,
-        'telefono': product.phone,
-        'direccion': product.address,
-        'estado': product.estado,
-        'price': product.price,
-        'imageUrl': product.imageUrl,
-        'cantidad': product.cantidad,
-      };
+  Map<String, dynamic> _toJson(Product product) => product.toJson();
 }

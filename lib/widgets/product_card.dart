@@ -6,9 +6,9 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onAddToCart;
   final VoidCallback? onEdit;
-  final bool showInventory; 
+  final bool showInventory;
   final bool isAdmin;
-  final bool enableBuy;     
+  final bool enableBuy;
 
   const ProductCard({
     super.key,
@@ -23,7 +23,7 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool lowForAdmin = product.cantidad < 10;
+    final bool lowForAdmin = product.stock < 10;
     final Color stockColor = isAdmin
         ? (lowForAdmin ? Colors.red : Colors.green)
         : Colors.red; // cliente solo lo ve si <5
@@ -40,7 +40,7 @@ class ProductCard extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 child: Image.network(
-                  product.imageUrl,
+                  product.imagenUrl,
                   fit: BoxFit.cover,
                   errorBuilder: (context, _, __) => const Center(
                     child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
@@ -54,32 +54,32 @@ class ProductCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    product.name,
+                    product.nombre,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (product.lastName.isNotEmpty)
+                  if (product.categoria.isNotEmpty)
                     Text(
-                      product.lastName,
+                      product.categoria,
                       style: const TextStyle(fontSize: 13, color: Colors.grey),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "\$${product.price.toStringAsFixed(2)}",
-                    style: const TextStyle(color: Colors.pink, fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                  if (product.email.isNotEmpty) ...[
+                  if (product.descripcion.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
-                      product.email,
+                      product.descripcion,
                       style: const TextStyle(fontSize: 12, color: Colors.black87),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
+                  const SizedBox(height: 4),
+                  Text(
+                    "\$${product.precio.toStringAsFixed(2)}",
+                    style: const TextStyle(color: Colors.pink, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
                   if (showInventory) ...[
                     const SizedBox(height: 6),
                     Row(
@@ -87,7 +87,7 @@ class ProductCard extends StatelessWidget {
                         Icon(Icons.inventory_2, size: 16, color: stockColor),
                         const SizedBox(width: 6),
                         Text(
-                          "Stock: ${product.cantidad}",
+                          "Stock: ${product.stock}",
                           style: TextStyle(color: stockColor, fontWeight: FontWeight.w600),
                         ),
                       ],

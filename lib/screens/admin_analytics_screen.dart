@@ -40,8 +40,8 @@ class AdminAnalyticsScreen extends StatelessWidget {
       }
       statusCounts[o.status] = (statusCounts[o.status] ?? 0) + 1;
       for (final it in o.items) {
-        revenueByProduct[it.productSnapshot.name] =
-            (revenueByProduct[it.productSnapshot.name] ?? 0) + it.subtotal;
+        revenueByProduct[it.productSnapshot.nombre] =
+            (revenueByProduct[it.productSnapshot.nombre] ?? 0) + it.subtotal;
       }
     }
 
