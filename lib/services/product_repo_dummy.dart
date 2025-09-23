@@ -16,6 +16,21 @@ class DummyProductRepository implements ProductRepository {
   @override
   Future<List<Product>> fetchProducts({String? search}) async {
     await Future.delayed(const Duration(milliseconds: 150)); // micro delay demo
+
+import '../models/product.dart';
+import 'product_repository.dart';
+
+/// Repositorio en memoria para DEMO/MVP.
+class DummyProductRepository implements ProductRepository {
+  final List<Product> _store;
+
+  /// Pasa una lista inicial de productos (por ejemplo los de main.dart).
+  DummyProductRepository(List<Product> initial) : _store = List.from(initial);
+
+  @override
+  Future<List<Product>> fetchProducts({String? search}) async {
+    await Future.delayed(const Duration(milliseconds: 150)); // micro delay demo
+
     if (search == null || search.trim().isEmpty) {
       // Devolvemos copia inmutable para evitar mutaciones externas
       return List<Product>.unmodifiable(_store);
@@ -23,33 +38,38 @@ class DummyProductRepository implements ProductRepository {
     final q = search.toLowerCase();
     return _store
         .where((p) {
-          final fullName = [p.name, p.lastName]
-              .where((element) => element.isNotEmpty)
-              .join(' ')
-              .trim()
-              .toLowerCase();
-          return fullName.contains(q);
+          final terms = <String>{
+            p.nombre,
+            p.categoria,
+            p.descripcion,
+          }..removeWhere((element) => element.trim().isEmpty);
+          return terms.any((term) => term.toLowerCase().contains(q));
         })
         .toList(growable: false);
   }
 
   @override
+
   Future<Product> createProduct(Product p, {File? imageFile}) async {
     bool _sameIdentity(Product a, Product b) {
+
+  Future<Product> createProduct(Product p) async {
+    bool sameIdentity(Product a, Product b) {
+
       if (a.id != null && b.id != null) {
         return a.id == b.id;
       }
-      String _fullName(Product product) =>
-          [product.name, product.lastName]
-              .where((element) => element.isNotEmpty)
-              .join(' ')
-              .trim()
-              .toLowerCase();
-      return _fullName(a) == _fullName(b);
+      final nameA = a.nombre.trim().toLowerCase();
+      final nameB = b.nombre.trim().toLowerCase();
+      if (nameA != nameB) return false;
+      final catA = a.categoria.trim().toLowerCase();
+      final catB = b.categoria.trim().toLowerCase();
+      if (catA.isEmpty || catB.isEmpty) return true;
+      return catA == catB;
     }
 
-    // Evita duplicados por id (si existe) o por nombre en modo dummy
-    final exists = _store.any((x) => _sameIdentity(x, p));
+    // Evita duplicados por id (si existe) o por nombre/categoría en modo dummy
+    final exists = _store.any((x) => sameIdentity(x, p));
     if (exists) {
       throw Exception('Ya existe un producto con ese nombre');
     }
@@ -58,23 +78,29 @@ class DummyProductRepository implements ProductRepository {
   }
 
   @override
+
   Future<Product> updateProduct(Product p, {File? imageFile}) async {
     int _indexOf(Product product) {
+
+  Future<Product> updateProduct(Product p) async {
+    int indexOf(Product product) {
+
       if (product.id != null) {
         final idx = _store.indexWhere((x) => x.id == product.id);
         if (idx != -1) return idx;
       }
-      String _fullName(Product product) =>
-          [product.name, product.lastName]
-              .where((element) => element.isNotEmpty)
-              .join(' ')
-              .trim()
-              .toLowerCase();
-      final target = _fullName(product);
-      return _store.indexWhere((x) => _fullName(x) == target);
+      final name = product.nombre.trim().toLowerCase();
+      final category = product.categoria.trim().toLowerCase();
+      return _store.indexWhere((x) {
+        final sameName = x.nombre.trim().toLowerCase() == name;
+        if (!sameName) return false;
+        if (category.isEmpty) return true;
+        final cat = x.categoria.trim().toLowerCase();
+        return cat == category;
+      });
     }
 
-    final idx = _indexOf(p);
+    final idx = indexOf(p);
     if (idx == -1) throw Exception('Producto no encontrado');
     _store[idx] = p;
     return p;
@@ -83,17 +109,18 @@ class DummyProductRepository implements ProductRepository {
   @override
   Future<void> deleteProduct(String productId) async {
     final before = _store.length;
+    final normalized = productId.trim().toLowerCase();
     _store.removeWhere((x) {
       if (x.id != null && x.id == productId) {
         return true;
       }
-      final fullName =
-          [x.name, x.lastName].where((element) => element.isNotEmpty).join(' ').trim().toLowerCase();
-      return fullName == productId.toLowerCase();
+      final name = x.nombre.trim().toLowerCase();
+      if (name == normalized) return true;
+      final catKey = '${name}|${x.categoria.trim().toLowerCase()}';
+      return catKey == normalized;
     });
     if (_store.length == before) {
       throw Exception('Producto no encontrado');
     }
   }
-
 }

@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import '../models/product.dart';
@@ -30,6 +31,38 @@ class MainScreen extends StatefulWidget {
 
   // Snapshots iniciales (para evitar pantallas vacías en el primer frame)
   final List<Product> productsInitialSnapshot;
+
+import 'package:flutter/material.dart';
+
+import '../models/product.dart';
+import '../models/usuario.dart';
+import '../models/cart_item.dart';
+import '../models/order.dart';
+import '../models/order_item.dart';
+import '../models/order_status.dart';
+
+// Screens
+import 'product_list_screen.dart';
+import 'cart_screen.dart';
+import 'profile_screen.dart';
+import 'add_product_screen.dart';
+import 'admin_orders_screen.dart';
+import 'admin_analytics_screen.dart';
+import 'edit_profile_screen.dart';
+import 'order_history_screen.dart';
+import 'login_screen.dart';
+
+// Services
+import '../services/auth_service.dart';
+import '../services/product_repository.dart';
+import '../services/order_repository.dart';
+
+class MainScreen extends StatefulWidget {
+  final Usuario user;
+
+  // Snapshots iniciales (para evitar pantallas vacías en el primer frame)
+  final List<Product> productsInitialSnapshot;
+
   final List<Order> ordersInitialSnapshot;
 
   final ProductRepository productRepository;
@@ -112,22 +145,24 @@ class _MainScreenState extends State<MainScreen> {
     if (a.id != null && b.id != null) {
       return a.id == b.id;
     }
-    return _productDisplayName(a).toLowerCase() ==
-        _productDisplayName(b).toLowerCase();
+    final nameA = a.nombre.trim().toLowerCase();
+    final nameB = b.nombre.trim().toLowerCase();
+    if (nameA != nameB) return false;
+    final categoryA = a.categoria.trim().toLowerCase();
+    final categoryB = b.categoria.trim().toLowerCase();
+    if (categoryA.isEmpty || categoryB.isEmpty) return true;
+    return categoryA == categoryB;
   }
 
   String _productDisplayName(Product product) {
-    final fullName = [product.name, product.lastName]
-        .where((element) => element.isNotEmpty)
-        .join(' ')
-        .trim();
-    return fullName.isEmpty ? product.name : fullName;
+    final name = product.nombre.trim();
+    return name.isEmpty ? 'Producto' : name;
   }
 
   int _availableStockOf(Product product) {
     final match = _products.where((p) => _sameProduct(p, product));
-    if (match.isNotEmpty) return match.first.cantidad;
-    return product.cantidad;
+    if (match.isNotEmpty) return match.first.stock;
+    return product.stock;
   }
 
   int _qtyInCartOf(Product product) {
@@ -174,6 +209,7 @@ class _MainScreenState extends State<MainScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("${_productDisplayName(product)} agregado (x$safeQty)"),
+
         action: SnackBarAction(
           label: "Ver carrito",
           onPressed: () {
@@ -247,6 +283,44 @@ class _MainScreenState extends State<MainScreen> {
         SnackBar(content: Text('Error al actualizar producto: $e')),
       );
     }
+  }
+
+
+        action: SnackBarAction(
+          label: "Ver carrito",
+          onPressed: () {
+            // Cambia a la pestaña de carrito si es cliente
+            if (!isAdminEffective) {
+              setState(() => _selectedIndex = 1); // cliente: idx 1 = carrito
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  void _removeFromCart(int index) {
+    if (isAdminEffective) return;
+    setState(() => _cart.removeAt(index));
+  }
+
+  // ---------- CRUD de productos (dummy); si quisieras persistir, llama a repo y recarga ----------
+
+  Future<void> _createProduct(Product p) async {
+    // En dummy sólo agregamos a la lista local.
+    // Para persistir: await widget.productRepository.createProduct(p); await _loadProducts();
+    setState(() => _products.add(p));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Producto '${p.nombre}' agregado")),
+    );
+  }
+
+  Future<void> _editProduct(int index, Product updated) async {
+    // Para persistir: await widget.productRepository.updateProduct(updated); await _loadProducts();
+    setState(() => _products[index] = updated);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Producto '${updated.nombre}' actualizado")),
+    );
   }
 
   // ---------- Pedidos ----------
@@ -396,7 +470,7 @@ class _MainScreenState extends State<MainScreen> {
 
   }
 
-  // ---------- UI ----------
+
 
   @override
   Widget build(BuildContext context) {
@@ -478,6 +552,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ];
 
+
     final List<BottomNavigationBarItem> items = isAdminEffective
         ? const [
             BottomNavigationBarItem(icon: Icon(Icons.store), label: "Productos"),
@@ -517,11 +592,54 @@ class _MainScreenState extends State<MainScreen> {
               backgroundColor: Colors.pink,
               onPressed: () async {
                 final result = await Navigator.push<ProductFormResult?>(
+
+
+    final List<BottomNavigationBarItem> items = isAdminEffective
+        ? const [
+            BottomNavigationBarItem(icon: Icon(Icons.store), label: "Productos"),
+            BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: "Pedidos"),
+            BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Estadísticas"),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
+          ]
+        : const [
+            BottomNavigationBarItem(icon: Icon(Icons.store), label: "Productos"),
+            BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Carrito"),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
+          ];
+
+    if (_selectedIndex >= screens.length) {
+      _selectedIndex = 0;
+    }
+
+    final title = isAdminEffective
+        ? (["Productos", "Pedidos", "Estadísticas", "Perfil"][_selectedIndex])
+        : (["Productos", "Carrito", "Perfil"][_selectedIndex]);
+
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: IndexedStack(index: _selectedIndex, children: screens),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (i) {
+          if (i >= screens.length) return;
+          setState(() => _selectedIndex = i);
+        },
+        selectedItemColor: Colors.pink,
+        unselectedItemColor: Colors.grey,
+        items: items,
+      ),
+      floatingActionButton: isAdminEffective && _selectedIndex == 0
+          ? FloatingActionButton(
+              backgroundColor: Colors.pink,
+              onPressed: () async {
+                final result = await Navigator.push<Product?>(
+
                   context,
                   MaterialPageRoute(builder: (_) => const AddProductScreen()),
                 );
                 if (result != null) {
                   await _createProduct(result);
+
                 }
               },
               child: const Icon(Icons.add),
@@ -530,3 +648,13 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
+
+                }
+              },
+              child: const Icon(Icons.add),
+            )
+          : null,
+    );
+  }
+}
+

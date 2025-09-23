@@ -9,7 +9,7 @@ class OrderItem {
     required this.qty,
   });
 
-  double get subtotal => productSnapshot.price * qty;
+  double get subtotal => productSnapshot.precio * qty;
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     final productJson = json['productSnapshot'] ?? json['product'] ?? json['producto'];
