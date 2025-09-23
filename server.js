@@ -21,7 +21,7 @@ app.get('/about', (req, res) => {
 app.get('/contact', (req, res) => {
     res.send('Contact Page')
 })
-const db = require('./models')
+const db = require('./models/index.js')
 const indexRoutes = require('./routes')
 
 app.use(cors({ origin: process.env.FRONTEND_URL ?? '*', credentials: true }));
