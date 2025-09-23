@@ -24,7 +24,24 @@ app.get('/contact', (req, res) => {
 const db = require('./models/index.js')
 const indexRoutes = require('./routes')
 
-app.use(cors({ origin: process.env.FRONTEND_URL ?? '*', credentials: true }));
+const DEFAULT_FRONTEND_ORIGIN = 'http://localhost:3000'
+const configuredOrigins = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',').map((origin) => origin.trim()).filter(Boolean)
+    : []
+const allowedOrigins = configuredOrigins.length > 0 ? configuredOrigins : [DEFAULT_FRONTEND_ORIGIN]
+
+const isOriginAllowed = (origin, whitelist) => whitelist.some((allowedOrigin) => allowedOrigin === origin)
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || isOriginAllowed(origin, allowedOrigins)) {
+            return callback(null, true)
+        }
+
+        return callback(new Error(`Origin ${origin} is not allowed by CORS policy`))
+    },
+    credentials: true,
+}))
 app.use(indexRoutes)
 
 const startServer = async () => {
