@@ -22,7 +22,7 @@ app.get('/about', (req, res) => {
 app.get('/contact', (req, res) => {
     res.send('Contact Page')
 })
-const db = require('./models/index.js')
+const db = require(path.join(__dirname, 'models'))
 const indexRoutes = require('./routes')
 
 const DEFAULT_FRONTEND_ORIGIN = 'http://localhost:3000'
