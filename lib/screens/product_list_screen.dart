@@ -27,9 +27,19 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final query = _query.trim().toLowerCase();
     final filtered = widget.products.where((p) {
-      if (_query.isEmpty) return true;
-      return p.name.toLowerCase().contains(_query.toLowerCase());
+      if (query.isEmpty) return true;
+      final fullName =
+          [p.name, p.lastName].where((element) => element.isNotEmpty).join(' ').trim();
+      final searchTargets = <String>{
+        p.name,
+        p.lastName,
+        fullName,
+        p.email,
+        p.phone,
+      }..removeWhere((value) => value.trim().isEmpty);
+      return searchTargets.any((value) => value.toLowerCase().contains(query));
     }).toList();
 
     return Padding(

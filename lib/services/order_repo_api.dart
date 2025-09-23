@@ -164,7 +164,12 @@ class ApiOrderRepository implements OrderRepository {
     }
 
     return Product(
-      name: _string(json['name'] ?? json['nombre']),
+      id: json['id']?.toString(),
+      name: _string(json['nombre'] ?? json['name']),
+      lastName: _string(json['apellido'] ?? json['lastName']),
+      email: _string(json['email'] ?? json['correo']),
+      phone: _string(json['telefono'] ?? json['phone']),
+      address: _string(json['direccion'] ?? json['address']),
       price: _double(json['price']),
       imageUrl: _string(json['imageUrl'] ?? json['imagen']),
       cantidad: _int(json['cantidad'] ?? json['stock']),
@@ -181,7 +186,13 @@ class ApiOrderRepository implements OrderRepository {
       );
 
   Map<String, dynamic> _productToJson(Product product) => {
+        'nombre': product.name,
         'name': product.name,
+        'apellido': product.lastName,
+        'lastName': product.lastName,
+        'email': product.email,
+        'telefono': product.phone,
+        'direccion': product.address,
         'price': product.price,
         'imageUrl': product.imageUrl,
         'cantidad': product.cantidad,

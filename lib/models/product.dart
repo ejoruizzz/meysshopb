@@ -5,6 +5,10 @@ class Product {
   final String imageUrl;
   final int cantidad;
   final String estado;
+  final String lastName;
+  final String email;
+  final String phone;
+  final String address;
 
   const Product({
     this.id,
@@ -13,6 +17,10 @@ class Product {
     required this.imageUrl,
     required this.cantidad,
     required this.estado,
+    this.lastName = '',
+    this.email = '',
+    this.phone = '',
+    this.address = '',
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -50,7 +58,14 @@ class Product {
         fallback: '',
       ),
       cantidad: _readInt(json['cantidad'] ?? json['stock']),
-      estado: _readString(json['estado'] ?? json['status'] ?? json['estadoProducto'], fallback: 'Activo'),
+      estado: _readString(
+        json['estado'] ?? json['status'] ?? json['estadoProducto'],
+        fallback: 'Activo',
+      ),
+      lastName: _readString(json['apellido'] ?? json['lastName'] ?? json['apellidos'], fallback: ''),
+      email: _readString(json['email'] ?? json['correo'] ?? json['correoElectronico'], fallback: ''),
+      phone: _readString(json['telefono'] ?? json['phone'] ?? json['celular'], fallback: ''),
+      address: _readString(json['direccion'] ?? json['address'] ?? json['domicilio'], fallback: ''),
     );
   }
 
@@ -58,10 +73,15 @@ class Product {
     return {
       if (id != null) 'id': id,
       'name': name,
+      'nombre': name,
       'price': price,
       'imageUrl': imageUrl,
       'cantidad': cantidad,
       'estado': estado,
+      'apellido': lastName,
+      'email': email,
+      'telefono': phone,
+      'direccion': address,
     };
   }
 
@@ -72,6 +92,10 @@ class Product {
     String? imageUrl,
     int? cantidad,
     String? estado,
+    String? lastName,
+    String? email,
+    String? phone,
+    String? address,
   }) {
     return Product(
       id: id ?? this.id,
@@ -80,6 +104,10 @@ class Product {
       imageUrl: imageUrl ?? this.imageUrl,
       cantidad: cantidad ?? this.cantidad,
       estado: estado ?? this.estado,
+      lastName: lastName ?? this.lastName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
     );
   }
 }

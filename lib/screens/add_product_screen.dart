@@ -11,6 +11,10 @@ class AddProductScreen extends StatefulWidget {
 class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
   final _priceController = TextEditingController();
   final _imageController = TextEditingController();
   final _cantidadController = TextEditingController();
@@ -18,6 +22,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
     _priceController.dispose();
     _imageController.dispose();
     _cantidadController.dispose();
@@ -29,14 +37,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
     final product = Product(
       name: _nameController.text.trim(),
+      lastName: _lastNameController.text.trim(),
+      email: _emailController.text.trim(),
+      phone: _phoneController.text.trim(),
+      address: _addressController.text.trim(),
       price: double.parse(_priceController.text.trim()),
       imageUrl: _imageController.text.trim(),
       cantidad: int.parse(_cantidadController.text.trim()),
       estado: "Activo",
     );
 
+    final fullName = [product.name, product.lastName]
+        .where((element) => element.isNotEmpty)
+        .join(' ')
+        .trim();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("${product.name} agregado (demo)")),
+      SnackBar(content: Text("${fullName.isEmpty ? product.name : fullName} agregado (demo)")),
     );
     Navigator.pop(context, product); // devolvemos el producto creado
   }
@@ -58,6 +74,52 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   decoration: const InputDecoration(
                     labelText: "Nombre",
                     prefixIcon: Icon(Icons.shopping_bag),
+                  ),
+                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
+                ),
+                const SizedBox(height: 15),
+                TextFormField(
+                  controller: _lastNameController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: "Apellido",
+                    prefixIcon: Icon(Icons.badge),
+                  ),
+                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
+                ),
+                const SizedBox(height: 15),
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: "Email",
+                    prefixIcon: Icon(Icons.email),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return "Campo obligatorio";
+                    if (!v.contains('@')) return "Email inválido";
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 15),
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: "Teléfono",
+                    prefixIcon: Icon(Icons.phone),
+                  ),
+                  validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
+                ),
+                const SizedBox(height: 15),
+                TextFormField(
+                  controller: _addressController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: "Dirección",
+                    prefixIcon: Icon(Icons.location_on),
                   ),
                   validator: (v) => v == null || v.trim().isEmpty ? "Campo obligatorio" : null,
                 ),

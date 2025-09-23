@@ -29,6 +29,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final p = widget.product;
+    final fullName = [p.name, p.lastName].where((it) => it.isNotEmpty).join(' ').trim();
     final bool showForClient = !widget.isAdmin && p.cantidad < 5;
     final bool showForAdmin  = widget.isAdmin;
     final bool lowForAdmin   = p.cantidad < 10;
@@ -39,8 +40,34 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     final bool outOfStock = p.cantidad <= 0;
 
+    Widget infoRow(IconData icon, String label, String value) {
+      if (value.isEmpty) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6.0),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: Colors.pink.shade400),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(title: Text(p.name)),
+      appBar: AppBar(title: Text(fullName.isEmpty ? p.name : fullName)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -63,13 +90,33 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            Text(p.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            Text(
+              fullName.isEmpty ? p.name : fullName,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 10),
             Text(
               "\$${p.price.toStringAsFixed(2)}",
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.pink),
             ),
             const SizedBox(height: 12),
+
+            if (p.lastName.isNotEmpty ||
+                p.email.isNotEmpty ||
+                p.phone.isNotEmpty ||
+                p.address.isNotEmpty) ...[
+              const Divider(height: 32),
+              const Text(
+                "Información del cliente",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              infoRow(Icons.badge, "Apellido", p.lastName),
+              infoRow(Icons.email, "Email", p.email),
+              infoRow(Icons.phone, "Teléfono", p.phone),
+              infoRow(Icons.location_on, "Dirección", p.address),
+              const SizedBox(height: 12),
+            ],
 
             if (showForAdmin || showForClient)
               Row(

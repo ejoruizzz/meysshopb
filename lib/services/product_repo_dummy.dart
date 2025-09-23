@@ -20,7 +20,14 @@ class DummyProductRepository implements ProductRepository {
     }
     final q = search.toLowerCase();
     return _store
-        .where((p) => p.name.toLowerCase().contains(q))
+        .where((p) {
+          final fullName = [p.name, p.lastName]
+              .where((element) => element.isNotEmpty)
+              .join(' ')
+              .trim()
+              .toLowerCase();
+          return fullName.contains(q);
+        })
         .toList(growable: false);
   }
 
@@ -30,7 +37,13 @@ class DummyProductRepository implements ProductRepository {
       if (a.id != null && b.id != null) {
         return a.id == b.id;
       }
-      return a.name.toLowerCase() == b.name.toLowerCase();
+      String _fullName(Product product) =>
+          [product.name, product.lastName]
+              .where((element) => element.isNotEmpty)
+              .join(' ')
+              .trim()
+              .toLowerCase();
+      return _fullName(a) == _fullName(b);
     }
 
     // Evita duplicados por id (si existe) o por nombre en modo dummy
@@ -49,7 +62,14 @@ class DummyProductRepository implements ProductRepository {
         final idx = _store.indexWhere((x) => x.id == product.id);
         if (idx != -1) return idx;
       }
-      return _store.indexWhere((x) => x.name.toLowerCase() == product.name.toLowerCase());
+      String _fullName(Product product) =>
+          [product.name, product.lastName]
+              .where((element) => element.isNotEmpty)
+              .join(' ')
+              .trim()
+              .toLowerCase();
+      final target = _fullName(product);
+      return _store.indexWhere((x) => _fullName(x) == target);
     }
 
     final idx = _indexOf(p);
@@ -65,7 +85,9 @@ class DummyProductRepository implements ProductRepository {
       if (x.id != null && x.id == productId) {
         return true;
       }
-      return x.name.toLowerCase() == productId.toLowerCase();
+      final fullName =
+          [x.name, x.lastName].where((element) => element.isNotEmpty).join(' ').trim().toLowerCase();
+      return fullName == productId.toLowerCase();
     });
     if (_store.length == before) {
       throw Exception('Producto no encontrado');
