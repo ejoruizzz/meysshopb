@@ -23,9 +23,9 @@ app.get('/about', (req, res) => {
 app.get('/contact', (req, res) => {
     res.send('Contact Page')
 })
-const db = require('./models/index.js')
-const { Usuario } = require('./models')
-const indexRoutes = require('./routes')
+const db = require('../backend_meys/src/models/index')
+const { Usuario } = require('../backend_meys/src/models')
+const indexRoutes = require('../backend_meys/src/routes')
 
 const DEFAULT_FRONTEND_ORIGIN = 'http://localhost:3000'
 const configuredOrigins = process.env.FRONTEND_URL
