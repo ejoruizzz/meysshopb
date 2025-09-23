@@ -526,7 +526,6 @@ class _BaseRequestPayload {
 
     if (request is http.MultipartRequest) {
       final fields = Map<String, String>.from(request.fields);
-      final encoding = request.encoding;
       final files = <_MultipartFilePayload>[];
       for (final file in request.files) {
         files.add(await _MultipartFilePayload.fromMultipartFile(file));
@@ -542,7 +541,6 @@ class _BaseRequestPayload {
         factory: (Uri uri) async {
           final clone = http.MultipartRequest(request.method, uri);
           clone.fields.addAll(fields);
-          clone.encoding = encoding;
           for (final file in files) {
             clone.files.add(file.toMultipartFile());
           }
