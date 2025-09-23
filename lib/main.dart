@@ -60,6 +60,10 @@ class MyApp extends StatelessWidget {
       final dummyProducts = <Product>[
         const Product(
           name: "Zapatos deportivos",
+          lastName: "Demo",
+          email: "zapatos@example.com",
+          phone: "+504 1111-1111",
+          address: "Boulevard Centro 123",
           price: 59.99,
           imageUrl: "https://picsum.photos/seed/zapatos/600/400",
           cantidad: 10,
@@ -67,6 +71,10 @@ class MyApp extends StatelessWidget {
         ),
         const Product(
           name: "Camiseta básica",
+          lastName: "Demo",
+          email: "camiseta@example.com",
+          phone: "+504 2222-2222",
+          address: "Calle Las Flores 456",
           price: 19.99,
           imageUrl: "https://picsum.photos/seed/camiseta/600/400",
           cantidad: 20,
@@ -74,6 +82,10 @@ class MyApp extends StatelessWidget {
         ),
         const Product(
           name: "Pantalón de mezclilla",
+          lastName: "Demo",
+          email: "pantalon@example.com",
+          phone: "+504 3333-3333",
+          address: "Colonia Primavera 789",
           price: 39.99,
           imageUrl: "https://picsum.photos/seed/pantalon/600/400",
           cantidad: 15,

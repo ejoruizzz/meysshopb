@@ -103,7 +103,16 @@ class _MainScreenState extends State<MainScreen> {
     if (a.id != null && b.id != null) {
       return a.id == b.id;
     }
-    return a.name.toLowerCase() == b.name.toLowerCase();
+    return _productDisplayName(a).toLowerCase() ==
+        _productDisplayName(b).toLowerCase();
+  }
+
+  String _productDisplayName(Product product) {
+    final fullName = [product.name, product.lastName]
+        .where((element) => element.isNotEmpty)
+        .join(' ')
+        .trim();
+    return fullName.isEmpty ? product.name : fullName;
   }
 
   int _availableStockOf(Product product) {
@@ -126,7 +135,11 @@ class _MainScreenState extends State<MainScreen> {
 
     if (stock <= 0 || maxAdd <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("No hay stock disponible de ${product.name}. Stock: $stock")),
+        SnackBar(
+          content: Text(
+            "No hay stock disponible de ${_productDisplayName(product)}. Stock: $stock",
+          ),
+        ),
       );
       return;
     }
@@ -151,7 +164,7 @@ class _MainScreenState extends State<MainScreen> {
     // Feedback + acción para ver el carrito
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("${product.name} agregado (x$safeQty)"),
+        content: Text("${_productDisplayName(product)} agregado (x$safeQty)"),
         action: SnackBarAction(
           label: "Ver carrito",
           onPressed: () {

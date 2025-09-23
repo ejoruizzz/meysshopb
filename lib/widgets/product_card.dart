@@ -59,11 +59,27 @@ class ProductCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  if (product.lastName.isNotEmpty)
+                    Text(
+                      product.lastName,
+                      style: const TextStyle(fontSize: 13, color: Colors.grey),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   const SizedBox(height: 4),
                   Text(
                     "\$${product.price.toStringAsFixed(2)}",
                     style: const TextStyle(color: Colors.pink, fontSize: 14, fontWeight: FontWeight.w600),
                   ),
+                  if (product.email.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      product.email,
+                      style: const TextStyle(fontSize: 12, color: Colors.black87),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                   if (showInventory) ...[
                     const SizedBox(height: 6),
                     Row(

@@ -105,7 +105,13 @@ class ApiProductRepository implements ProductRepository {
     return _idByCacheKey[key];
   }
 
-  String _cacheKey(Product product) => product.name.toLowerCase();
+  String _cacheKey(Product product) {
+    final fullName = [product.name, product.lastName]
+        .where((element) => element.isNotEmpty)
+        .join(' ')
+        .trim();
+    return (fullName.isEmpty ? product.name : fullName).toLowerCase();
+  }
 
   Product _fromJson(Map<String, dynamic> json) {
     double _double(dynamic value) {
@@ -126,7 +132,12 @@ class ApiProductRepository implements ProductRepository {
     }
 
     return Product(
-      name: _string(json['name'] ?? json['nombre']),
+      id: json['id']?.toString(),
+      name: _string(json['nombre'] ?? json['name']),
+      lastName: _string(json['apellido'] ?? json['lastName']),
+      email: _string(json['email'] ?? json['correo']),
+      phone: _string(json['telefono'] ?? json['phone']),
+      address: _string(json['direccion'] ?? json['address']),
       price: _double(json['price']),
       imageUrl: _string(json['imageUrl'] ?? json['imagen']),
       cantidad: _int(json['cantidad'] ?? json['stock']),
@@ -135,10 +146,15 @@ class ApiProductRepository implements ProductRepository {
   }
 
   Map<String, dynamic> _toJson(Product product) => {
+        'nombre': product.name,
         'name': product.name,
+        'apellido': product.lastName,
+        'email': product.email,
+        'telefono': product.phone,
+        'direccion': product.address,
+        'estado': product.estado,
         'price': product.price,
         'imageUrl': product.imageUrl,
         'cantidad': product.cantidad,
-        'estado': product.estado,
       };
 }
