@@ -1,3 +1,37 @@
+
+import 'package:flutter/material.dart';
+
+import '../models/product.dart';
+import '../models/product_form_result.dart';
+import '../models/usuario.dart';
+import '../models/cart_item.dart';
+import '../models/order.dart';
+import '../models/order_item.dart';
+import '../models/order_status.dart';
+
+// Screens
+import 'product_list_screen.dart';
+import 'cart_screen.dart';
+import 'profile_screen.dart';
+import 'add_product_screen.dart';
+import 'admin_orders_screen.dart';
+import 'admin_analytics_screen.dart';
+import 'edit_profile_screen.dart';
+import 'order_history_screen.dart';
+import 'login_screen.dart';
+
+// Services
+import '../services/api_client.dart';
+import '../services/auth_service.dart';
+import '../services/product_repository.dart';
+import '../services/order_repository.dart';
+
+class MainScreen extends StatefulWidget {
+  final Usuario user;
+
+  // Snapshots iniciales (para evitar pantallas vacías en el primer frame)
+  final List<Product> productsInitialSnapshot;
+
 import 'package:flutter/material.dart';
 
 import '../models/product.dart';
@@ -28,6 +62,7 @@ class MainScreen extends StatefulWidget {
 
   // Snapshots iniciales (para evitar pantallas vacías en el primer frame)
   final List<Product> productsInitialSnapshot;
+
   final List<Order> ordersInitialSnapshot;
 
   final ProductRepository productRepository;
@@ -174,6 +209,83 @@ class _MainScreenState extends State<MainScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("${_productDisplayName(product)} agregado (x$safeQty)"),
+
+        action: SnackBarAction(
+          label: "Ver carrito",
+          onPressed: () {
+            // Cambia a la pestaña de carrito si es cliente
+            if (!isAdminEffective) {
+              setState(() => _selectedIndex = 1); // cliente: idx 1 = carrito
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  void _removeFromCart(int index) {
+    if (isAdminEffective) return;
+    setState(() => _cart.removeAt(index));
+  }
+
+  // ---------- CRUD de productos ----------
+
+  Future<void> _createProduct(ProductFormResult result) async {
+    if (result.imageFile == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona una imagen para el producto.')),
+      );
+      return;
+    }
+    try {
+      final created = await widget.productRepository.createProduct(
+        result.product,
+        imageFile: result.imageFile,
+      );
+      await _loadProducts();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Producto '${created.name}' agregado")),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al crear producto: $e')),
+      );
+    }
+  }
+
+  Future<void> _editProduct(int index, ProductFormResult result) async {
+    try {
+      final updated = await widget.productRepository.updateProduct(
+        result.product,
+        imageFile: result.imageFile,
+      );
+      await _loadProducts();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Producto '${updated.name}' actualizado")),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al actualizar producto: $e')),
+      );
+    }
+  }
+
+
         action: SnackBarAction(
           label: "Ver carrito",
           onPressed: () {
@@ -358,7 +470,7 @@ class _MainScreenState extends State<MainScreen> {
 
   }
 
-  // ---------- UI ----------
+
 
   @override
   Widget build(BuildContext context) {
@@ -440,6 +552,48 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ];
 
+
+    final List<BottomNavigationBarItem> items = isAdminEffective
+        ? const [
+            BottomNavigationBarItem(icon: Icon(Icons.store), label: "Productos"),
+            BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: "Pedidos"),
+            BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Estadísticas"),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
+          ]
+        : const [
+            BottomNavigationBarItem(icon: Icon(Icons.store), label: "Productos"),
+            BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Carrito"),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
+          ];
+
+    if (_selectedIndex >= screens.length) {
+      _selectedIndex = 0;
+    }
+
+    final title = isAdminEffective
+        ? (["Productos", "Pedidos", "Estadísticas", "Perfil"][_selectedIndex])
+        : (["Productos", "Carrito", "Perfil"][_selectedIndex]);
+
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: IndexedStack(index: _selectedIndex, children: screens),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (i) {
+          if (i >= screens.length) return;
+          setState(() => _selectedIndex = i);
+        },
+        selectedItemColor: Colors.pink,
+        unselectedItemColor: Colors.grey,
+        items: items,
+      ),
+      floatingActionButton: isAdminEffective && _selectedIndex == 0
+          ? FloatingActionButton(
+              backgroundColor: Colors.pink,
+              onPressed: () async {
+                final result = await Navigator.push<ProductFormResult?>(
+
+
     final List<BottomNavigationBarItem> items = isAdminEffective
         ? const [
             BottomNavigationBarItem(icon: Icon(Icons.store), label: "Productos"),
@@ -479,11 +633,13 @@ class _MainScreenState extends State<MainScreen> {
               backgroundColor: Colors.pink,
               onPressed: () async {
                 final result = await Navigator.push<Product?>(
+
                   context,
                   MaterialPageRoute(builder: (_) => const AddProductScreen()),
                 );
                 if (result != null) {
                   await _createProduct(result);
+
                 }
               },
               child: const Icon(Icons.add),
@@ -492,3 +648,13 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
+
+                }
+              },
+              child: const Icon(Icons.add),
+            )
+          : null,
+    );
+  }
+}
+

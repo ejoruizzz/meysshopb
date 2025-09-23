@@ -4,9 +4,37 @@ const { Cliente } = require('../models');
 
 function toPOJO(row) {
   if (!row) return null;
-  const { id, nombre, apellido, email, telefono, direccion, createdAt, updatedAt } =
+  const {
+    id,
+    nombre,
+    apellido,
+    email,
+    telefono,
+    direccion,
+    price,
+    cantidad,
+    estado,
+    imagen,
+    createdAt,
+    updatedAt
+  } =
     row.toJSON ? row.toJSON() : row;
-  return { id, nombre, apellido, email, telefono, direccion, createdAt, updatedAt };
+  const priceNumber = price != null ? Number(price) : null;
+  const cantidadNumber = cantidad != null ? Number(cantidad) : null;
+  return {
+    id,
+    nombre,
+    apellido,
+    email,
+    telefono,
+    direccion,
+    price: priceNumber,
+    cantidad: cantidadNumber,
+    estado,
+    imagen,
+    createdAt,
+    updatedAt
+  };
 }
 
 module.exports = {

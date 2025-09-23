@@ -1,3 +1,8 @@
+import 'dart:io';
+
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+
 import '../models/product.dart';
 import 'api_client.dart';
 import 'product_repository.dart';
@@ -47,9 +52,19 @@ class ApiProductRepository implements ProductRepository {
   }
 
   @override
+
+  Future<Product> createProduct(Product p, {File? imageFile}) async {
+    if (imageFile == null) {
+      throw ArgumentError('imageFile es obligatorio para crear productos');
+    }
+
+    final request = await _multipartRequest('POST', p, imageFile: imageFile);
+    final data = await _client.post(basePath, body: request);
+
   Future<Product> createProduct(Product p) async {
     final payload = _toJson(p)..remove('id');
     final data = await _client.post(basePath, body: payload);
+
     if (data is! Map<String, dynamic>) {
       throw ApiException(
         500,
@@ -63,7 +78,7 @@ class ApiProductRepository implements ProductRepository {
   }
 
   @override
-  Future<Product> updateProduct(Product p) async {
+  Future<Product> updateProduct(Product p, {File? imageFile}) async {
     final id = _lookupId(p);
     if (id == null) {
       throw ApiException(
@@ -71,7 +86,8 @@ class ApiProductRepository implements ProductRepository {
         'No se encontró identificador para el producto ${p.nombre}',
       );
     }
-    final data = await _client.put('$basePath/$id', body: _toJson(p));
+    final request = await _multipartRequest('PUT', p, imageFile: imageFile);
+    final data = await _client.put('$basePath/$id', body: request);
     if (data is! Map<String, dynamic>) {
       throw ApiException(
         500,
@@ -125,5 +141,71 @@ class ApiProductRepository implements ProductRepository {
     return null;
   }
 
+
+  Future<http.MultipartRequest> _multipartRequest(
+    String method,
+    Product product, {
+    File? imageFile,
+  }) async {
+    final request = http.MultipartRequest(method.toUpperCase(), Uri());
+    request.fields.addAll(_formFields(product));
+
+    if (imageFile != null) {
+      final fileName = _fileName(imageFile.path);
+      final mediaType = _mediaTypeForPath(imageFile.path);
+      request.files.add(await http.MultipartFile.fromPath(
+        'imagen',
+        imageFile.path,
+        filename: fileName,
+        contentType: mediaType,
+      ));
+    }
+
+    return request;
+  }
+
+  Map<String, String> _formFields(Product product) {
+    final fields = <String, String>{
+      'nombre': product.name.trim(),
+      'apellido': product.lastName.trim(),
+      'estado': product.estado.trim().isEmpty ? 'Activo' : product.estado.trim(),
+      'price': product.price.toString(),
+      'cantidad': product.cantidad.toString(),
+    };
+
+    void putIfNotEmpty(String key, String value) {
+      final trimmed = value.trim();
+      if (trimmed.isNotEmpty) {
+        fields[key] = trimmed;
+      }
+    }
+
+    putIfNotEmpty('email', product.email);
+    putIfNotEmpty('telefono', product.phone);
+    putIfNotEmpty('direccion', product.address);
+
+    return fields;
+  }
+
+  String _fileName(String path) {
+    final separator = Platform.pathSeparator;
+    if (path.contains(separator)) {
+      return path.split(separator).last;
+    }
+    return path.split('/').last;
+  }
+
+  MediaType? _mediaTypeForPath(String path) {
+    final lower = path.toLowerCase();
+    if (lower.endsWith('.png')) {
+      return MediaType('image', 'png');
+    }
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
+      return MediaType('image', 'jpeg');
+    }
+    return null;
+  }
+
   Map<String, dynamic> _toJson(Product product) => product.toJson();
+
 }

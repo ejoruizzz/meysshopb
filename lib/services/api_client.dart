@@ -158,12 +158,26 @@ class ApiClient {
       throw StateError('ApiClient has been closed');
     }
 
-    final request = http.Request(method.toUpperCase(), _resolveUri(path, queryParameters));
-    request.headers.addAll(_buildHeaders(body: body, extraHeaders: headers));
+    final resolvedUri = _resolveUri(path, queryParameters);
+    final upperMethod = method.toUpperCase();
+    http.BaseRequest request;
 
-    final encodedBody = _encodeBody(body);
-    if (encodedBody != null) {
-      request.body = encodedBody;
+    if (body is http.BaseRequest) {
+      request = body;
+      if (request.method.toUpperCase() != upperMethod) {
+        throw ArgumentError('Método del request no coincide con $upperMethod');
+      }
+      request.url = resolvedUri;
+      request.headers.addAll(_buildHeaders(body: body, extraHeaders: headers));
+    } else {
+      final httpRequest = http.Request(upperMethod, resolvedUri);
+      httpRequest.headers.addAll(_buildHeaders(body: body, extraHeaders: headers));
+
+      final encodedBody = _encodeBody(body);
+      if (encodedBody != null) {
+        httpRequest.body = encodedBody;
+      }
+      request = httpRequest;
     }
 
     http.Response response =

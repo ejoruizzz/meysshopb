@@ -1,4 +1,22 @@
 import 'dart:async';
+import 'dart:io';
+
+import '../models/product.dart';
+import 'product_repository.dart';
+
+/// Repositorio en memoria para DEMO/MVP.
+/// Nota: como tu Product aún no tiene `id`, usamos `name` como “llave” temporal.
+/// Cuando agregues `id`, cambia los métodos para usarlo.
+class DummyProductRepository implements ProductRepository {
+  final List<Product> _store;
+
+  /// Pasa una lista inicial de productos (por ejemplo los de main.dart).
+  DummyProductRepository(List<Product> initial) : _store = List.from(initial);
+
+  @override
+  Future<List<Product>> fetchProducts({String? search}) async {
+    await Future.delayed(const Duration(milliseconds: 150)); // micro delay demo
+
 import '../models/product.dart';
 import 'product_repository.dart';
 
@@ -12,6 +30,7 @@ class DummyProductRepository implements ProductRepository {
   @override
   Future<List<Product>> fetchProducts({String? search}) async {
     await Future.delayed(const Duration(milliseconds: 150)); // micro delay demo
+
     if (search == null || search.trim().isEmpty) {
       // Devolvemos copia inmutable para evitar mutaciones externas
       return List<Product>.unmodifiable(_store);
@@ -30,8 +49,13 @@ class DummyProductRepository implements ProductRepository {
   }
 
   @override
+
+  Future<Product> createProduct(Product p, {File? imageFile}) async {
+    bool _sameIdentity(Product a, Product b) {
+
   Future<Product> createProduct(Product p) async {
     bool sameIdentity(Product a, Product b) {
+
       if (a.id != null && b.id != null) {
         return a.id == b.id;
       }
@@ -54,8 +78,13 @@ class DummyProductRepository implements ProductRepository {
   }
 
   @override
+
+  Future<Product> updateProduct(Product p, {File? imageFile}) async {
+    int _indexOf(Product product) {
+
   Future<Product> updateProduct(Product p) async {
     int indexOf(Product product) {
+
       if (product.id != null) {
         final idx = _store.indexWhere((x) => x.id == product.id);
         if (idx != -1) return idx;

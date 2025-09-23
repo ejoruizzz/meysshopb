@@ -2,6 +2,7 @@ const express = require('express');
 const adapter = require('../adapters/clienteAdapter');
 const validate = require('../middleware/validate');
 const { requiereAuth, requiereAdmin } = require('../middleware/authJwt');
+const { handleSingle } = require('../middleware/uploadProductImage');
 const {
   crearClienteRules,
   actualizarClienteRules,
@@ -18,6 +19,7 @@ r.post(
   '/',
   requiereAuth,
   requiereAdmin,
+  handleSingle('imagen'),
   crearClienteRules,
   validate,
   adapter.crear
@@ -28,6 +30,7 @@ r.put(
   '/:id',
   requiereAuth,
   requiereAdmin,
+  handleSingle('imagen'),
   actualizarClienteRules,
   validate,
   adapter.actualizar
