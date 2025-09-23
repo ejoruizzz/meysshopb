@@ -214,7 +214,7 @@ class _MainScreenState extends State<MainScreen> {
       await _loadProducts();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Producto '${created.name}' agregado")),
+        SnackBar(content: Text("Producto '${created.nombre}' agregado")),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -238,7 +238,7 @@ class _MainScreenState extends State<MainScreen> {
       await _loadProducts();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Producto '${updated.name}' actualizado")),
+        SnackBar(content: Text("Producto '${updated.nombre}' actualizado")),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
