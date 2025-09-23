@@ -9,5 +9,5 @@ class CartItem {
   CartItem copyWith({Product? product, int? qty}) =>
       CartItem(product: product ?? this.product, qty: qty ?? this.qty);
 
-  double get subtotal => product.price * qty;
+  double get subtotal => product.precio * qty;
 }

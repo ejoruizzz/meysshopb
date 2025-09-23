@@ -26,7 +26,7 @@ class _CartScreenState extends State<CartScreen> {
               itemBuilder: (context, index) {
                 final it = widget.cartItems[index];
                 return Dismissible(
-                  key: ValueKey("${it.product.name}-$index"),
+                  key: ValueKey("${it.product.id ?? it.product.nombre}-$index"),
                   background: Container(
                     color: Colors.red,
                     alignment: Alignment.centerLeft,
@@ -40,10 +40,10 @@ class _CartScreenState extends State<CartScreen> {
                     child: ListTile(
                       leading: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.network(it.product.imageUrl, width: 50, height: 50, fit: BoxFit.cover),
+                        child: Image.network(it.product.imagenUrl, width: 50, height: 50, fit: BoxFit.cover),
                       ),
-                      title: Text(it.product.name),
-                      subtitle: Text("Cantidad: ${it.qty} • \$${it.product.price.toStringAsFixed(2)}"),
+                      title: Text(it.product.nombre),
+                      subtitle: Text("Cantidad: ${it.qty} • \$${it.product.precio.toStringAsFixed(2)}"),
                       trailing: Text(
                         "\$${(it.subtotal).toStringAsFixed(2)}",
                         style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.pink),
