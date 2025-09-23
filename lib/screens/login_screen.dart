@@ -15,12 +15,14 @@ class LoginScreen extends StatefulWidget {
   final AuthService authService;
   final ProductRepository productRepository;
   final OrderRepository orderRepository;
+  final bool ordersEnabled;
 
   const LoginScreen({
     super.key,
     required this.authService,
     required this.productRepository,
     required this.orderRepository,
+    required this.ordersEnabled,
   });
 
   @override
@@ -55,7 +57,9 @@ class _LoginScreenState extends State<LoginScreen> {
       final products = await widget.productRepository.fetchProducts();
 
       // Sembrar pedidos demo si es cliente (para historial/analytics)
-      final seedOrders = _seedOrdersIfNeeded(user, products);
+      final seedOrders = widget.ordersEnabled
+          ? _seedOrdersIfNeeded(user, products)
+          : <Order>[];
 
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -68,6 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
             productRepository: widget.productRepository,
             orderRepository: widget.orderRepository,
             authService: widget.authService,
+            ordersEnabled: widget.ordersEnabled,
           ),
         ),
       );

@@ -7,7 +7,6 @@ import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'services/auth_service_api.dart';
 import 'services/auth_service_dummy.dart';
-import 'services/order_repo_api.dart';
 import 'services/order_repo_dummy.dart';
 import 'services/order_repository.dart';
 import 'services/product_repo_api.dart';
@@ -17,6 +16,11 @@ import 'services/product_repository.dart';
 const bool kUseMockServices = bool.fromEnvironment(
   'USE_MOCK_SERVICES',
   defaultValue: false,
+);
+
+const bool kOrdersFeatureEnabled = bool.fromEnvironment(
+  'ORDERS_FEATURE_ENABLED',
+  defaultValue: kUseMockServices,
 );
 
 const String kApiBaseUrl = String.fromEnvironment(
@@ -99,7 +103,7 @@ class MyApp extends StatelessWidget {
     } else {
       authService = ApiAuthService(_apiClient);
       productRepo = ApiProductRepository(_apiClient);
-      orderRepo = ApiOrderRepository(_apiClient);
+      orderRepo = DummyOrderRepository([]);
     }
 
     return MaterialApp(
@@ -144,6 +148,7 @@ class MyApp extends StatelessWidget {
         authService: authService,
         productRepository: productRepo,
         orderRepository: orderRepo,
+        ordersEnabled: kOrdersFeatureEnabled,
       ),
     );
   }

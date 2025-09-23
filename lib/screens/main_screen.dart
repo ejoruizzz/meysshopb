@@ -33,6 +33,7 @@ class MainScreen extends StatefulWidget {
   final ProductRepository productRepository;
   final OrderRepository orderRepository;
   final AuthService authService;
+  final bool ordersEnabled;
 
   const MainScreen({
     super.key,
@@ -42,6 +43,7 @@ class MainScreen extends StatefulWidget {
     required this.productRepository,
     required this.orderRepository,
     required this.authService,
+    required this.ordersEnabled,
   });
 
   @override
@@ -60,6 +62,8 @@ class _MainScreenState extends State<MainScreen> {
   bool _loadingProducts = false;
   bool _loadingOrders = false;
 
+  bool get _ordersEnabled => widget.ordersEnabled;
+
   /// Si es admin real y NO está en "ver como cliente", se considera admin efectivo.
   bool _viewAsClient = false;
   bool get isActualAdmin => _currentUser.rol == "admin";
@@ -72,7 +76,9 @@ class _MainScreenState extends State<MainScreen> {
     _products = List<Product>.from(widget.productsInitialSnapshot);
     _orders = List<Order>.from(widget.ordersInitialSnapshot);
     _loadProducts();
-    _loadOrders();
+    if (_ordersEnabled) {
+      _loadOrders();
+    }
   }
 
   Future<void> _loadProducts() async {
@@ -87,6 +93,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _loadOrders() async {
+    if (!_ordersEnabled) return;
     setState(() => _loadingOrders = true);
     try {
       final list = await widget.orderRepository.fetchOrders();
@@ -205,6 +212,10 @@ class _MainScreenState extends State<MainScreen> {
   // ---------- Pedidos ----------
 
   Future<void> _updateOrderStatus(String orderId, OrderStatus newStatus) async {
+    if (!_ordersEnabled) {
+      _showOrdersComingSoon();
+      return;
+    }
     await widget.orderRepository.updateStatus(orderId, newStatus);
     final idx = _orders.indexWhere((o) => o.id == orderId);
     if (idx == -1) return;
@@ -257,6 +268,46 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  void _showOrdersComingSoon() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('El módulo de pedidos estará disponible próximamente.'),
+      ),
+    );
+  }
+
+  Widget _buildOrdersComingSoon() {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.local_shipping_outlined,
+              size: 72,
+              color: theme.primaryColor,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Pedidos próximamente',
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Estamos trabajando en la gestión de pedidos. Muy pronto estará disponible.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ---------- Logout ----------
 
   Future<void> _logout() async {
@@ -297,6 +348,7 @@ class _MainScreenState extends State<MainScreen> {
       authService: widget.authService,
       productRepository: widget.productRepository,
       orderRepository: widget.orderRepository,
+      ordersEnabled: widget.ordersEnabled,
     ),
   ),
   (route) => false,
@@ -309,6 +361,16 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     // Páginas según rol
+    final Widget adminOrdersTab = !_ordersEnabled
+        ? _buildOrdersComingSoon()
+        : _loadingOrders
+            ? const Center(child: CircularProgressIndicator())
+            : AdminOrdersScreen(
+                orders: _orders,
+                onUpdateStatus: _updateOrderStatus,
+                showAppBar: false,
+              );
+
     final List<Widget> screens = isAdminEffective
         ? [
             // 0) Productos (admin: sin carrito)
@@ -320,14 +382,8 @@ class _MainScreenState extends State<MainScreen> {
                     onAddToCart: (_, __) {}, // admin no compra
                     onEditProduct: _editProduct,
                   ),
-            // 1) Pedidos
-            _loadingOrders
-                ? const Center(child: CircularProgressIndicator())
-                : AdminOrdersScreen(
-                    orders: _orders,
-                    onUpdateStatus: _updateOrderStatus,
-                    showAppBar: false,
-                  ),
+            // 1) Pedidos o mensaje temporal
+            adminOrdersTab,
             // 2) Estadísticas
             AdminAnalyticsScreen(orders: _orders),
             // 3) Perfil
@@ -344,6 +400,7 @@ class _MainScreenState extends State<MainScreen> {
               onEditProfile: _openEditProfile,
               onOpenOrderHistory: null, // admin no tiene historial de compras
               onLogout: _logout,
+              orderHistorySubtitle: null,
             ),
           ]
         : [
@@ -373,8 +430,11 @@ class _MainScreenState extends State<MainScreen> {
                     }
                   : null,
               onEditProfile: _openEditProfile,
-              onOpenOrderHistory: _openOrderHistory,
+              onOpenOrderHistory:
+                  _ordersEnabled ? _openOrderHistory : _showOrdersComingSoon,
               onLogout: _logout,
+              orderHistorySubtitle:
+                  _ordersEnabled ? null : 'Disponible próximamente',
             ),
           ];
 

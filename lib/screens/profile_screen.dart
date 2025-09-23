@@ -13,6 +13,7 @@ class ProfileScreen extends StatelessWidget {
   final VoidCallback? onEditProfile;
   final VoidCallback? onOpenOrderHistory; // cliente
   final VoidCallback? onLogout;
+  final String? orderHistorySubtitle;
 
   const ProfileScreen({
     super.key,
@@ -23,6 +24,7 @@ class ProfileScreen extends StatelessWidget {
     this.onEditProfile,
     this.onOpenOrderHistory,
     this.onLogout,
+    this.orderHistorySubtitle,
   });
 
   @override
@@ -87,6 +89,9 @@ class ProfileScreen extends StatelessWidget {
                 child: ListTile(
                   leading: const Icon(Icons.history, color: Colors.pink),
                   title: const Text("Historial de compras"),
+                  subtitle: orderHistorySubtitle != null
+                      ? Text(orderHistorySubtitle!, style: const TextStyle(color: Colors.grey))
+                      : null,
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: onOpenOrderHistory,
                 ),
