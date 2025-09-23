@@ -66,7 +66,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 final originalIndex = widget.products.indexOf(product);
 
                 final bool showInventoryForThisCard =
-                    widget.isAdmin || (!widget.isAdmin && product.cantidad < 5);
+                    widget.isAdmin || (!widget.isAdmin && product.stock < 5);
 
                 return ProductCard(
                   product: product,

@@ -52,18 +52,11 @@ class ApiProductRepository implements ProductRepository {
   }
 
   @override
-
   Future<Product> createProduct(Product p, {File? imageFile}) async {
-    if (imageFile == null) {
-      throw ArgumentError('imageFile es obligatorio para crear productos');
-    }
-
-    final request = await _multipartRequest('POST', p, imageFile: imageFile);
-    final data = await _client.post(basePath, body: request);
-
-  Future<Product> createProduct(Product p) async {
-    final payload = _toJson(p)..remove('id');
-    final data = await _client.post(basePath, body: payload);
+    final body = imageFile != null
+        ? await _multipartRequest('POST', p, imageFile: imageFile)
+        : (_toJson(p)..remove('id'));
+    final data = await _client.post(basePath, body: body);
 
     if (data is! Map<String, dynamic>) {
       throw ApiException(
@@ -166,23 +159,25 @@ class ApiProductRepository implements ProductRepository {
 
   Map<String, String> _formFields(Product product) {
     final fields = <String, String>{
-      'nombre': product.name.trim(),
-      'apellido': product.lastName.trim(),
-      'estado': product.estado.trim().isEmpty ? 'Activo' : product.estado.trim(),
-      'price': product.price.toString(),
-      'cantidad': product.cantidad.toString(),
+      'nombre': product.nombre.trim(),
+      'descripcion': product.descripcion.trim(),
+      'categoria': product.categoria.trim(),
+      'precio': product.precio.toString(),
+      'price': product.precio.toString(),
+      'stock': product.stock.toString(),
+      'cantidad': product.stock.toString(),
     };
 
-    void putIfNotEmpty(String key, String value) {
-      final trimmed = value.trim();
-      if (trimmed.isNotEmpty) {
-        fields[key] = trimmed;
-      }
+    final imageUrl = product.imagenUrl.trim();
+    if (imageUrl.isNotEmpty) {
+      fields['imagenUrl'] = imageUrl;
+      fields['imagen_url'] = imageUrl;
+      fields['imageUrl'] = imageUrl;
     }
 
-    putIfNotEmpty('email', product.email);
-    putIfNotEmpty('telefono', product.phone);
-    putIfNotEmpty('direccion', product.address);
+    if (product.id != null && product.id!.trim().isNotEmpty) {
+      fields['id'] = product.id!.trim();
+    }
 
     return fields;
   }
