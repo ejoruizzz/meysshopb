@@ -496,7 +496,6 @@ class _BaseRequestPayload {
     required this.followRedirects,
     required this.maxRedirects,
     required this.persistentConnection,
-    required this.chunkedTransferEncoding,
     required this.contentLength,
     required Future<http.BaseRequest> Function(Uri uri) factory,
   }) : _factory = factory;
@@ -506,7 +505,6 @@ class _BaseRequestPayload {
   final bool followRedirects;
   final int maxRedirects;
   final bool persistentConnection;
-  final bool chunkedTransferEncoding;
   final int? contentLength;
   final Future<http.BaseRequest> Function(Uri uri) _factory;
 
@@ -515,7 +513,6 @@ class _BaseRequestPayload {
     request.followRedirects = followRedirects;
     request.maxRedirects = maxRedirects;
     request.persistentConnection = persistentConnection;
-    request.chunkedTransferEncoding = chunkedTransferEncoding;
     if (contentLength != null) {
       request.contentLength = contentLength!;
     }
@@ -531,7 +528,6 @@ class _BaseRequestPayload {
     final followRedirects = request.followRedirects;
     final maxRedirects = request.maxRedirects;
     final persistentConnection = request.persistentConnection;
-    final chunkedTransferEncoding = request.chunkedTransferEncoding;
     final int? originalContentLength = request.contentLength;
 
     if (request is http.MultipartRequest) {
@@ -548,7 +544,6 @@ class _BaseRequestPayload {
         followRedirects: followRedirects,
         maxRedirects: maxRedirects,
         persistentConnection: persistentConnection,
-        chunkedTransferEncoding: chunkedTransferEncoding,
         contentLength: originalContentLength,
         factory: (Uri uri) async {
           final clone = http.MultipartRequest(request.method, uri);
@@ -572,7 +567,6 @@ class _BaseRequestPayload {
         followRedirects: followRedirects,
         maxRedirects: maxRedirects,
         persistentConnection: persistentConnection,
-        chunkedTransferEncoding: chunkedTransferEncoding,
         contentLength: originalContentLength,
         factory: (Uri uri) async {
           final clone = http.Request(request.method, uri);
@@ -585,8 +579,7 @@ class _BaseRequestPayload {
 
     if (request is http.StreamedRequest) {
       final bytes = await http.ByteStream(request.finalize()).toBytes();
-      final effectiveContentLength = originalContentLength ??
-          (chunkedTransferEncoding ? null : bytes.length);
+      final computedContentLength = bytes.length;
 
       return _BaseRequestPayload(
         method: request.method,
@@ -594,13 +587,10 @@ class _BaseRequestPayload {
         followRedirects: followRedirects,
         maxRedirects: maxRedirects,
         persistentConnection: persistentConnection,
-        chunkedTransferEncoding: chunkedTransferEncoding,
-        contentLength: effectiveContentLength,
+        contentLength: computedContentLength,
         factory: (Uri uri) async {
           final clone = http.StreamedRequest(request.method, uri);
-          if (effectiveContentLength != null) {
-            clone.contentLength = effectiveContentLength;
-          }
+          clone.contentLength = computedContentLength;
           clone.sink.add(bytes);
           await clone.sink.close();
           return clone;
