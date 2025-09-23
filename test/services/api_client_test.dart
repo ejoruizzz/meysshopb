@@ -91,6 +91,59 @@ void main() {
       expect(retryRequest.url.toString(), 'http://localhost:3001/upload');
     });
   });
+
+  group('_attemptTokenRefresh', () {
+    test('limpia los tokens cuando el backend responde 401', () async {
+      final client = _SequencedClient([
+        (request) async => _jsonResponse(401, {'detail': 'invalid'}),
+      ]);
+
+      final apiClient = ApiClient(
+        baseUrl: 'http://localhost:3001',
+        httpClient: client,
+      )
+        ..updateTokens(
+          accessToken: 'token-1',
+          refreshToken: 'refresh-token-1',
+        );
+
+      final result = await apiClient.refreshTokens();
+
+      expect(result, isNull);
+      expect(apiClient.accessToken, isNull);
+      expect(apiClient.refreshToken, isNull);
+      expect(client.requestLog, hasLength(1));
+      expect(
+        client.requestLog.single.url.toString(),
+        'http://localhost:3001/api/auth/refresh',
+      );
+    });
+
+    test('propaga ClientException y conserva los tokens', () async {
+      final networkError = http.ClientException('network down');
+      final client = _SequencedClient([
+        (request) async => throw networkError,
+      ]);
+
+      final apiClient = ApiClient(
+        baseUrl: 'http://localhost:3001',
+        httpClient: client,
+      )
+        ..updateTokens(
+          accessToken: 'token-1',
+          refreshToken: 'refresh-token-1',
+        );
+
+      await expectLater(
+        apiClient.refreshTokens(),
+        throwsA(same(networkError)),
+      );
+
+      expect(apiClient.accessToken, 'token-1');
+      expect(apiClient.refreshToken, 'refresh-token-1');
+      expect(client.requestLog, hasLength(1));
+    });
+  });
 }
 
 http.StreamedResponse _jsonResponse(int statusCode, Map<String, dynamic> body) {
