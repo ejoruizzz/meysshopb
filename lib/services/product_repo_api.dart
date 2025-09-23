@@ -52,18 +52,12 @@ class ApiProductRepository implements ProductRepository {
   }
 
   @override
-
   Future<Product> createProduct(Product p, {File? imageFile}) async {
-    if (imageFile == null) {
-      throw ArgumentError('imageFile es obligatorio para crear productos');
-    }
+    final body = imageFile != null
+        ? await _multipartRequest('POST', p, imageFile: imageFile)
+        : (_requestPayload(p)..remove('id'));
 
-    final request = await _multipartRequest('POST', p, imageFile: imageFile);
-    final data = await _client.post(basePath, body: request);
-
-  Future<Product> createProduct(Product p) async {
-    final payload = _toJson(p)..remove('id');
-    final data = await _client.post(basePath, body: payload);
+    final data = await _client.post(basePath, body: body);
 
     if (data is! Map<String, dynamic>) {
       throw ApiException(
@@ -86,8 +80,11 @@ class ApiProductRepository implements ProductRepository {
         'No se encontró identificador para el producto ${p.nombre}',
       );
     }
-    final request = await _multipartRequest('PUT', p, imageFile: imageFile);
-    final data = await _client.put('$basePath/$id', body: request);
+    final body = imageFile != null
+        ? await _multipartRequest('PUT', p,
+            imageFile: imageFile, idOverride: id)
+        : _requestPayload(p, idOverride: id);
+    final data = await _client.put('$basePath/$id', body: body);
     if (data is! Map<String, dynamic>) {
       throw ApiException(
         500,
@@ -146,9 +143,10 @@ class ApiProductRepository implements ProductRepository {
     String method,
     Product product, {
     File? imageFile,
+    String? idOverride,
   }) async {
     final request = http.MultipartRequest(method.toUpperCase(), Uri());
-    request.fields.addAll(_formFields(product));
+    request.fields.addAll(_formFields(product, idOverride: idOverride));
 
     if (imageFile != null) {
       final fileName = _fileName(imageFile.path);
@@ -164,27 +162,12 @@ class ApiProductRepository implements ProductRepository {
     return request;
   }
 
-  Map<String, String> _formFields(Product product) {
-    final fields = <String, String>{
-      'nombre': product.name.trim(),
-      'apellido': product.lastName.trim(),
-      'estado': product.estado.trim().isEmpty ? 'Activo' : product.estado.trim(),
-      'price': product.price.toString(),
-      'cantidad': product.cantidad.toString(),
-    };
-
-    void putIfNotEmpty(String key, String value) {
-      final trimmed = value.trim();
-      if (trimmed.isNotEmpty) {
-        fields[key] = trimmed;
-      }
-    }
-
-    putIfNotEmpty('email', product.email);
-    putIfNotEmpty('telefono', product.phone);
-    putIfNotEmpty('direccion', product.address);
-
-    return fields;
+  Map<String, String> _formFields(
+    Product product, {
+    String? idOverride,
+  }) {
+    final payload = _requestPayload(product, idOverride: idOverride);
+    return payload.map((key, value) => MapEntry(key, value.toString()));
   }
 
   String _fileName(String path) {
@@ -206,6 +189,57 @@ class ApiProductRepository implements ProductRepository {
     return null;
   }
 
-  Map<String, dynamic> _toJson(Product product) => product.toJson();
+  Map<String, dynamic> _requestPayload(
+    Product product, {
+    String? idOverride,
+  }) {
+    final fields = <String, dynamic>{};
+
+    String? normalized(String? value) {
+      if (value == null) return null;
+      final trimmed = value.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+
+    final idValue = normalized(idOverride ?? product.id);
+    if (idValue != null) {
+      fields['id'] = idValue;
+      fields['productoId'] = idValue;
+      fields['productId'] = idValue;
+    }
+
+    final nombre = normalized(product.nombre);
+    if (nombre != null) {
+      fields['nombre'] = nombre;
+      fields['name'] = nombre;
+    }
+
+    final descripcion = normalized(product.descripcion);
+    if (descripcion != null) {
+      fields['descripcion'] = descripcion;
+      fields['description'] = descripcion;
+    }
+
+    fields['precio'] = product.precio;
+    fields['price'] = product.precio;
+
+    fields['stock'] = product.stock;
+    fields['cantidad'] = product.stock;
+
+    final categoria = normalized(product.categoria);
+    if (categoria != null) {
+      fields['categoria'] = categoria;
+      fields['category'] = categoria;
+    }
+
+    final imagenUrl = normalized(product.imagenUrl);
+    if (imagenUrl != null) {
+      fields['imagenUrl'] = imagenUrl;
+      fields['imageUrl'] = imagenUrl;
+      fields['imagen_url'] = imagenUrl;
+    }
+
+    return fields;
+  }
 
 }
