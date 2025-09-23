@@ -33,6 +33,25 @@ void main() {
       final relative = client.resolveUriForTest('orders/123');
       expect(relative.toString(), 'http://localhost:3001/api/orders/123');
     });
+
+    test('mantiene solo los parámetros propios de URLs absolutas externas', () {
+      final client = ApiClient(
+        baseUrl: 'https://api.meysshop.com/base?lang=es&version=1',
+      );
+
+      final uri = client.resolveUriForTest(
+        'https://cdn.meysshop.com/assets/image.png?size=large&format=webp',
+        {'quality': 80, 'ignored': null},
+      );
+
+      expect(uri.scheme, 'https');
+      expect(uri.host, 'cdn.meysshop.com');
+      expect(uri.path, '/assets/image.png');
+      expect(
+        uri.queryParameters,
+        {'size': 'large', 'format': 'webp', 'quality': '80'},
+      );
+    });
   });
 
   group('reintentos automáticos', () {

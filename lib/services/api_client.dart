@@ -273,54 +273,67 @@ class ApiClient {
       return true;
     }
 
-    final mergedQuery = <String, String>{..._baseQueryParameters};
+    Map<String, String> mergedQuery = <String, String>{..._baseQueryParameters};
     final trimmedPath = path.trim();
     Uri uri = _baseUri;
     String? fragment;
 
     if (trimmedPath.isNotEmpty) {
       final parsedPath = Uri.parse(trimmedPath);
-      mergedQuery.addAll(parsedPath.queryParameters);
       fragment = parsedPath.fragment.isEmpty ? null : parsedPath.fragment;
 
-      if (parsedPath.hasScheme) {
-        uri = parsedPath;
+      final bool hasDifferentAuthority = parsedPath.hasScheme &&
+          (parsedPath.scheme != _baseUri.scheme ||
+              parsedPath.host != _baseUri.host ||
+              parsedPath.port != _baseUri.port);
+
+      if (hasDifferentAuthority) {
+        mergedQuery = <String, String>{...parsedPath.queryParameters};
+        uri = parsedPath.replace(queryParameters: null, fragment: null);
       } else {
-        final baseSegments =
-            _baseUri.pathSegments.where((segment) => segment.isNotEmpty).toList();
-        final pathSegments =
-            parsedPath.pathSegments.where((segment) => segment.isNotEmpty).toList();
-        final combinedSegments = <String>[];
+        mergedQuery.addAll(parsedPath.queryParameters);
 
-        if (trimmedPath.startsWith('/')) {
-          combinedSegments.addAll(pathSegments);
-        } else if (baseSegments.isEmpty || hasPrefix(pathSegments, baseSegments)) {
-          combinedSegments.addAll(pathSegments);
+        if (parsedPath.hasScheme) {
+          uri = parsedPath.replace(queryParameters: null, fragment: null);
         } else {
-          combinedSegments
-            ..addAll(baseSegments)
-            ..addAll(pathSegments);
-        }
+          final baseSegments = _baseUri.pathSegments
+              .where((segment) => segment.isNotEmpty)
+              .toList();
+          final pathSegments = parsedPath.pathSegments
+              .where((segment) => segment.isNotEmpty)
+              .toList();
+          final combinedSegments = <String>[];
 
-        final normalizedSegments = <String>[];
-        for (final segment in combinedSegments) {
-          if (segment == '.' || segment.isEmpty) {
-            continue;
+          if (trimmedPath.startsWith('/')) {
+            combinedSegments.addAll(pathSegments);
+          } else if (baseSegments.isEmpty || hasPrefix(pathSegments, baseSegments)) {
+            combinedSegments.addAll(pathSegments);
+          } else {
+            combinedSegments
+              ..addAll(baseSegments)
+              ..addAll(pathSegments);
           }
-          if (segment == '..') {
-            if (normalizedSegments.isNotEmpty) {
-              normalizedSegments.removeLast();
+
+          final normalizedSegments = <String>[];
+          for (final segment in combinedSegments) {
+            if (segment == '.' || segment.isEmpty) {
+              continue;
             }
-            continue;
+            if (segment == '..') {
+              if (normalizedSegments.isNotEmpty) {
+                normalizedSegments.removeLast();
+              }
+              continue;
+            }
+            normalizedSegments.add(segment);
           }
-          normalizedSegments.add(segment);
-        }
 
-        uri = _baseUri.replace(
-          pathSegments: normalizedSegments,
-          queryParameters: null,
-          fragment: fragment,
-        );
+          uri = _baseUri.replace(
+            pathSegments: normalizedSegments,
+            queryParameters: null,
+            fragment: null,
+          );
+        }
       }
     }
 
